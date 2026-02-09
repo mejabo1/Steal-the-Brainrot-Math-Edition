@@ -656,7 +656,7 @@ export default function App() {
         )}
         
         {attackNotification && (
-             <div className="absolute top-20 left-1/2 transform -translate-x-1/2 z-[150] animate-bounce-short">
+             <div className="absolute top-20 left-1/2 transform -translate-x-1/2 z-150 animate-bounce-short">
                 <div className={`px-6 py-4 rounded-xl shadow-xl border-4 font-black text-xl uppercase flex items-center gap-3 ${attackNotification.success ? 'bg-green-500 border-green-700 text-white' : 'bg-red-600 border-red-800 text-white'}`}>
                     {attackNotification.success ? <ShieldAlert size={24} /> : <ShieldAlert size={24} />}
                     {attackNotification.message}
@@ -676,14 +676,14 @@ export default function App() {
         <StatusHeader gameState={gameState} />
         
         <div className="flex flex-1 flex-col md:flex-row overflow-hidden relative">
-            <aside className="w-full md:w-[300px] h-[30%] md:h-full order-2 md:order-1 z-20 shadow-xl bg-white border-r border-slate-200">
+            <aside className="w-full md:w-sidebar h-30pct md:h-full order-2 md:order-1 z-20 shadow-xl bg-white border-r border-slate-200">
                 <RivalsList 
                     gameState={gameState}
                     onStealAttempt={startSteal}
                 />
             </aside>
 
-            <main className="flex-1 relative order-1 md:order-2 h-[40%] md:h-full overflow-hidden bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-slate-100 to-slate-200">
+            <main className="flex-1 relative order-1 md:order-2 h-40pct md:h-full overflow-hidden bg-radial-slate">
                 <MathGame 
                     gameState={gameState} 
                     isPaused={showHelp || !!activeSteal || !!activeAttack}
@@ -701,7 +701,7 @@ export default function App() {
                 )}
             </main>
 
-            <aside className="w-full md:w-[350px] h-[30%] md:h-full order-3 z-20 shadow-xl bg-white border-l border-slate-200">
+            <aside className="w-full md:w-shop h-30pct md:h-full order-3 z-20 shadow-xl bg-white border-l border-slate-200">
                 <Shop 
                     gameState={gameState} 
                     shopRotation={shopRotation}
