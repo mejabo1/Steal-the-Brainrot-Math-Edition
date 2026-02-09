@@ -1,8 +1,9 @@
+
 <!DOCTYPE html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <title>Steal the Brainrot: Math Edition</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&display=swap" rel="stylesheet">
@@ -10,6 +11,8 @@
       body {
         font-family: 'Fredoka', sans-serif;
         background-color: #f0f4f8;
+        overscroll-behavior: none;
+        touch-action: manipulation;
       }
       /* Custom scrollbar for the shop */
       .custom-scrollbar::-webkit-scrollbar {

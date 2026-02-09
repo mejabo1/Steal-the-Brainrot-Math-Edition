@@ -31,11 +31,13 @@ export const MathGame: React.FC<MathGameProps> = ({
 
   // Generate new problem based on total accumulated money (difficulty score)
   const nextProblem = () => {
+    // Difficulty increases as you get richer
     const difficultyScore = gameState.money + (gameState.streak * 50); 
     setProblem(generateProblem(difficultyScore));
     setUserAnswer('');
     
     // Calculate dynamic time:
+    // Removed the money penalty. Now time only increases with items.
     // Base 15s. Infinite timer buff checks for value >= 60.
     const calculatedTime = BASE_QUESTION_TIME + gameState.timerBonus;
     
