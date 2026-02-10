@@ -9,7 +9,7 @@ import { HelpModal } from './components/HelpModal';
 import { StealChallenge } from './components/StealChallenge';
 import { BaseDefense } from './components/BaseDefense';
 import { SHOP_ITEMS, getPassiveIncome, MAX_INVENTORY_SIZE, MAX_BOT_INVENTORY_SIZE, BOT_PROFILES } from './constants';
-import { ShieldAlert, Coins } from 'lucide-react';
+import { ShieldAlert } from 'lucide-react';
 
 const INITIAL_STATE: GameState = {
   money: 0,
@@ -689,15 +689,8 @@ export default function App() {
             </aside>
 
             <main className="flex-1 relative order-1 md:order-2 h-40pct md:h-full overflow-hidden bg-gradient-to-br from-violet-600 to-indigo-600 shadow-[inset_0_0_20px_rgba(0,0,0,0.3)]">
-                {/* Money HUD - Top Left Overlay */}
-                <div className="absolute top-4 left-4 z-30 flex items-center gap-3 bg-slate-900/60 backdrop-blur-md px-4 py-2.5 rounded-2xl border border-white/10 shadow-xl text-white hover:bg-slate-900/80 transition-colors cursor-default select-none group">
-                    <div className="bg-gradient-to-br from-yellow-400 to-yellow-600 p-2 rounded-full shadow-lg group-hover:scale-110 transition-transform">
-                        <Coins className="text-white drop-shadow-md" size={20} />
-                    </div>
-                    <span className="font-black text-2xl tracking-tight drop-shadow-lg tabular-nums text-transparent bg-clip-text bg-gradient-to-r from-white to-slate-200">
-                        ${gameState.money.toLocaleString()}
-                    </span>
-                </div>
+                
+                {/* Floating Money HUD removed from here */}
 
                 <MathGame 
                     gameState={gameState} 
