@@ -1,8 +1,9 @@
 
 import React, { useState } from 'react';
 import { BrainrotItem, GameState } from '../types';
-import { getPassiveIncome, SHOP_ITEMS, MAX_INVENTORY_SIZE } from '../constants';
-import { ShoppingBag, Lock, Check, Timer, Backpack, Zap, Trash2 } from 'lucide-react';
+import { getPassiveIncome, SHOP_ITEMS, MAX_INVENTORY_SIZE, BASE_REBIRTH_COST } from '../constants';
+import { ShoppingBag, Lock, Check, Timer, Backpack, Zap, Trash2, Crown } from 'lucide-react';
+import { RebirthModal } from './RebirthModal';
 
 interface ShopProps {
   gameState: GameState;
@@ -10,14 +11,20 @@ interface ShopProps {
   shopTimer: number;
   onBuyItem: (item: BrainrotItem) => void;
   onSellItem: (item: BrainrotItem) => void;
+  onRebirth: () => void;
 }
 
-export const Shop: React.FC<ShopProps> = ({ gameState, shopRotation, shopTimer, onBuyItem, onSellItem }) => {
+export const Shop: React.FC<ShopProps> = ({ gameState, shopRotation, shopTimer, onBuyItem, onSellItem, onRebirth }) => {
   const [viewMode, setViewMode] = useState<'shop' | 'inventory'>('shop');
+  const [showRebirthModal, setShowRebirthModal] = useState(false);
 
   // Filter items for inventory view
   const inventoryItems = SHOP_ITEMS.filter(item => gameState.inventory.includes(item.id));
   const isInventoryFull = gameState.inventory.length >= MAX_INVENTORY_SIZE;
+
+  // Rebirth Cost Calc
+  const nextRebirthCost = BASE_REBIRTH_COST * (gameState.rebirths + 1);
+  const canAffordRebirth = gameState.money >= nextRebirthCost;
 
   const getRarityColor = (rarity: string) => {
     switch (rarity) {
@@ -90,12 +97,39 @@ export const Shop: React.FC<ShopProps> = ({ gameState, shopRotation, shopTimer, 
 
   return (
     <div className="flex flex-col w-full h-full bg-blue-50/80">
+      {showRebirthModal && (
+          <RebirthModal 
+            currentRebirths={gameState.rebirths}
+            money={gameState.money}
+            onConfirm={() => {
+                onRebirth();
+                setShowRebirthModal(false);
+            }}
+            onCancel={() => setShowRebirthModal(false)}
+          />
+      )}
+
       <div className="bg-blue-100/80 border-b border-blue-200 z-10">
         <div className="p-4 pb-0">
-            <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2 mb-4">
-                <ShoppingBag className="text-purple-600" size={20} />
-                <span>Marketplace</span>
-            </h2>
+            <div className="flex justify-between items-center mb-4">
+                <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+                    <ShoppingBag className="text-purple-600" size={20} />
+                    <span>Marketplace</span>
+                </h2>
+                
+                <button 
+                    onClick={() => setShowRebirthModal(true)}
+                    className={`
+                        text-[10px] font-black uppercase tracking-wider px-3 py-1.5 rounded-full border-2 flex items-center gap-1.5 transition-all btn-press
+                        ${canAffordRebirth 
+                            ? 'bg-yellow-400 border-yellow-500 text-yellow-900 animate-pulse shadow-lg shadow-yellow-400/50' 
+                            : 'bg-slate-800 border-slate-700 text-yellow-500'}
+                    `}
+                >
+                    <Crown size={12} fill="currentColor" />
+                    Rebirth
+                </button>
+            </div>
             
             <div className="flex gap-1 bg-white/50 p-1 rounded-lg mb-4">
                 <button 

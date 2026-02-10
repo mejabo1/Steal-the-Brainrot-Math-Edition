@@ -45,4 +45,5 @@ export interface GameState {
   bots: Bot[];
   nextAttackTime: number; // Timestamp for when the base needs shielding
   consecutiveTimeouts: number; // Track how many timers expired in a row
+  rebirths: number; // Number of times rebirthed
 }

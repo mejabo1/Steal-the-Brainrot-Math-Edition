@@ -6,6 +6,10 @@ export const BASE_MONEY_REWARD = 10;
 export const MAX_INVENTORY_SIZE = 8;
 export const MAX_BOT_INVENTORY_SIZE = 4;
 
+// Rebirth Config
+export const BASE_REBIRTH_COST = 1000000;
+export const REBIRTH_MULTIPLIER_BONUS = 0.5; // +50% multiplier per rebirth
+
 // Helper to calculate passive income based on price (1% of price per second, min 1)
 export const getPassiveIncome = (price: number): number => {
     return Math.max(1, Math.floor(price * 0.01));

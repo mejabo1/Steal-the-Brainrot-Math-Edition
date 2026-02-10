@@ -8,7 +8,7 @@ import { StatusHeader } from './components/StatusHeader';
 import { HelpModal } from './components/HelpModal';
 import { StealChallenge } from './components/StealChallenge';
 import { BaseDefense } from './components/BaseDefense';
-import { SHOP_ITEMS, getPassiveIncome, MAX_INVENTORY_SIZE, MAX_BOT_INVENTORY_SIZE, BOT_PROFILES } from './constants';
+import { SHOP_ITEMS, getPassiveIncome, MAX_INVENTORY_SIZE, MAX_BOT_INVENTORY_SIZE, BOT_PROFILES, BASE_REBIRTH_COST, REBIRTH_MULTIPLIER_BONUS } from './constants';
 import { ShieldAlert } from 'lucide-react';
 
 const INITIAL_STATE: GameState = {
@@ -23,7 +23,8 @@ const INITIAL_STATE: GameState = {
   streakBonusMult: 1,
   bots: [],
   nextAttackTime: Date.now() + 30000,
-  consecutiveTimeouts: 0
+  consecutiveTimeouts: 0,
+  rebirths: 0
 };
 
 const SHOP_ROTATION_TIME = 10; // 10 seconds
@@ -96,6 +97,11 @@ export default function App() {
     // Migration for consecutiveTimeouts
     if (state.consecutiveTimeouts === undefined) {
         state.consecutiveTimeouts = 0;
+    }
+
+    // Migration for rebirths
+    if (state.rebirths === undefined) {
+        state.rebirths = 0;
     }
 
     return state;
@@ -268,7 +274,8 @@ export default function App() {
     return () => clearInterval(loop);
   }, [gameState.inventory, showHelp, activeSteal, gameState.bots, activeAttack, gameState.nextAttackTime]);
 
-  const calculateStats = (inventoryIds: string[]) => {
+  // Calculate stats including Rebirth Bonus
+  const calculateStats = (inventoryIds: string[], currentRebirths: number) => {
     let multiplier = 1;
     let baseMoney = 0;
     let timerBonus = 0;
@@ -286,6 +293,9 @@ export default function App() {
             case 'streak_bonus': streakBonusMult *= item.value; break;
         }
     });
+
+    // Add Rebirth Multiplier Bonus (Permanent +0.5x per rebirth)
+    multiplier += (currentRebirths * REBIRTH_MULTIPLIER_BONUS);
 
     return { multiplier, baseMoney, timerBonus, streakBonusMult };
   };
@@ -340,7 +350,7 @@ export default function App() {
               }
           }
 
-          const stats = calculateStats(newInventory);
+          const stats = calculateStats(newInventory, prev.rebirths);
           const hasShieldItem = newInventory.some(id => 
             SHOP_ITEMS.find(i => i.id === id)?.effectType === 'shield'
           );
@@ -440,7 +450,7 @@ export default function App() {
                 }
                 
                 // Recalculate Stats
-                const stats = calculateStats(nextState.inventory);
+                const stats = calculateStats(nextState.inventory, prev.rebirths);
                 nextState.multiplier = stats.multiplier;
                 nextState.baseMoney = stats.baseMoney;
                 nextState.timerBonus = stats.timerBonus;
@@ -475,7 +485,7 @@ export default function App() {
 
     setGameState(prev => {
         const newInventory = [...prev.inventory, item.id];
-        const stats = calculateStats(newInventory);
+        const stats = calculateStats(newInventory, prev.rebirths);
         let newShieldActive = prev.shieldActive;
         if (item.effectType === 'shield') newShieldActive = true;
 
@@ -495,7 +505,7 @@ export default function App() {
   const handleSellItem = (item: BrainrotItem) => {
     setGameState(prev => {
         const newInventory = prev.inventory.filter(id => id !== item.id);
-        const stats = calculateStats(newInventory);
+        const stats = calculateStats(newInventory, prev.rebirths);
         const hasShieldItem = newInventory.some(id => 
             SHOP_ITEMS.find(i => i.id === id)?.effectType === 'shield'
         );
@@ -512,6 +522,47 @@ export default function App() {
             shieldActive: newShieldActive
         };
     });
+  };
+
+  const handleRebirth = () => {
+      const nextRebirthCost = BASE_REBIRTH_COST * (gameState.rebirths + 1);
+      
+      if (gameState.money < nextRebirthCost) return;
+
+      setGameState(prev => {
+          // Calculate new rebirth count
+          const newRebirthCount = prev.rebirths + 1;
+          
+          // Reset inventory and calculate new base stats (which will just be the rebirth bonus)
+          const newStats = calculateStats([], newRebirthCount);
+          
+          // Clear bots' inventories to reset the playing field
+          const resetBots = prev.bots.map(bot => ({
+              ...bot,
+              inventory: [],
+              isVulnerable: false,
+              nextVulnerableTime: Date.now() + Math.random() * 30000,
+          }));
+
+          setAttackNotification({ message: `REBIRTH ${newRebirthCount} ACHIEVED!`, success: true });
+          setTimeout(() => setAttackNotification(null), 3000);
+
+          return {
+              ...prev,
+              money: 0, // Lose money
+              inventory: [], // Lose brainrots
+              streak: 0,
+              multiplier: newStats.multiplier,
+              baseMoney: newStats.baseMoney,
+              timerBonus: newStats.timerBonus,
+              streakBonusMult: newStats.streakBonusMult,
+              shieldActive: false,
+              consecutiveTimeouts: 0,
+              bots: resetBots,
+              rebirths: newRebirthCount,
+              nextAttackTime: Date.now() + 30000
+          };
+      });
   };
 
   const startSteal = (bot: Bot, itemId: string) => {
@@ -623,7 +674,7 @@ export default function App() {
               }
           }
 
-          const stats = calculateStats(newInventory);
+          const stats = calculateStats(newInventory, prev.rebirths);
           const hasShieldItem = newInventory.some(id => 
             SHOP_ITEMS.find(i => i.id === id)?.effectType === 'shield'
           );
@@ -685,6 +736,7 @@ export default function App() {
                     shopTimer={shopTimer}
                     onBuyItem={handleBuyItem} 
                     onSellItem={handleSellItem}
+                    onRebirth={handleRebirth}
                 />
             </aside>
 

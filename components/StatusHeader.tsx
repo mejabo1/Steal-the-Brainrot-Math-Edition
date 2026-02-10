@@ -2,7 +2,7 @@
 import React from 'react';
 import { GameState } from '../types';
 import { SHOP_ITEMS, getPassiveIncome } from '../constants';
-import { Flame, Shield, TrendingUp, Clock, Zap, Coins } from 'lucide-react';
+import { Flame, Shield, TrendingUp, Clock, Zap, Coins, Crown } from 'lucide-react';
 
 interface StatusHeaderProps {
   gameState: GameState;
@@ -36,6 +36,13 @@ export const StatusHeader: React.FC<StatusHeaderProps> = ({ gameState }) => {
 
         {/* Right Side: Stats Row */}
         <div className="flex items-center gap-3 sm:gap-6 text-sm font-medium">
+             
+             {/* Rebirth Rank */}
+             <div className="flex items-center gap-1.5 text-yellow-500">
+                 <Crown size={16} fill="currentColor" />
+                 <span className="font-bold">Rank {gameState.rebirths}</span>
+             </div>
+
              {/* Streak */}
             <div className={`flex items-center gap-1.5 px-3 py-1 rounded-full border transition-colors ${gameState.streak > 5 ? 'bg-orange-500/10 border-orange-500/20 text-orange-400' : 'bg-slate-800 border-slate-700 text-slate-400'}`}>
                 <Flame size={14} className={gameState.streak > 5 ? 'animate-pulse' : ''} fill={gameState.streak > 5 ? "currentColor" : "none"} />
