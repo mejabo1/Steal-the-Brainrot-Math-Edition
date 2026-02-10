@@ -3,12 +3,36 @@ import { BrainrotItem } from './types';
 
 export const BASE_QUESTION_TIME = 30; // Changed to 30s
 export const BASE_MONEY_REWARD = 10;
-export const MAX_INVENTORY_SIZE = 8;
+export const BASE_INVENTORY_SIZE = 8; // Renamed from MAX_INVENTORY_SIZE. Base slots.
 export const MAX_BOT_INVENTORY_SIZE = 4;
 
 // Rebirth Config
 export const BASE_REBIRTH_COST = 1000000;
 export const REBIRTH_MULTIPLIER_BONUS = 0.5; // +50% multiplier per rebirth
+
+// Specific costs for Rebirth levels 1-6
+const REBIRTH_COST_TIERS = [
+    1000000,   // Level 1
+    5000000,   // Level 2
+    10000000,  // Level 3
+    30000000,  // Level 4
+    60000000,  // Level 5
+    80000000   // Level 6
+];
+
+export const getRebirthCost = (targetLevel: number): number => {
+    if (targetLevel <= 0) return 0;
+    
+    // Use defined tiers if available
+    if (targetLevel <= REBIRTH_COST_TIERS.length) {
+        return REBIRTH_COST_TIERS[targetLevel - 1];
+    }
+    
+    // Fallback scaling for levels > 6 (Add 50M per level)
+    const lastDefinedCost = REBIRTH_COST_TIERS[REBIRTH_COST_TIERS.length - 1];
+    const extraLevels = targetLevel - REBIRTH_COST_TIERS.length;
+    return lastDefinedCost + (extraLevels * 50000000);
+};
 
 // Helper to calculate passive income based on price (1% of price per second, min 1)
 export const getPassiveIncome = (price: number): number => {
@@ -26,7 +50,27 @@ export const BOT_PROFILES = [
     { name: "Mrs. Morgan", avatar: "💻" },
     { name: "Coach Copley", avatar: "🧢" },
     { name: "Coach Redwine", avatar: "👟" },
-    { name: "Jimmy", avatar: "🤪" }
+    { name: "Jimmy", avatar: "🤪" },
+    // New Rivals
+    { name: "Israel", avatar: "😎" },
+    { name: "Harper", avatar: "🎀" },
+    { name: "Luke F.", avatar: "🧢" },
+    { name: "Lawson", avatar: "🦁" },
+    { name: "Luke M.", avatar: "🎸" },
+    { name: "Vina", avatar: "🌺" },
+    { name: "Hope", avatar: "✨" },
+    { name: "Ellie", avatar: "🎨" },
+    { name: "Dominic", avatar: "🎮" },
+    { name: "Joseph", avatar: "🏀" },
+    { name: "Madi", avatar: "👯‍♀️" },
+    { name: "Blyss", avatar: "🌟" },
+    { name: "Charlotte", avatar: "🧁" },
+    { name: "Lincoln", avatar: "🎩" },
+    { name: "Haven", avatar: "🌈" },
+    { name: "Noah", avatar: "⚓" },
+    { name: "Spencer", avatar: "🚀" },
+    { name: "Charlie", avatar: "🐶" },
+    { name: "Landon", avatar: "⚽" }
 ];
 
 export const SHOP_ITEMS: BrainrotItem[] = [

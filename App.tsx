@@ -8,7 +8,7 @@ import { StatusHeader } from './components/StatusHeader';
 import { HelpModal } from './components/HelpModal';
 import { StealChallenge } from './components/StealChallenge';
 import { BaseDefense } from './components/BaseDefense';
-import { SHOP_ITEMS, getPassiveIncome, MAX_INVENTORY_SIZE, MAX_BOT_INVENTORY_SIZE, BOT_PROFILES, BASE_REBIRTH_COST, REBIRTH_MULTIPLIER_BONUS } from './constants';
+import { SHOP_ITEMS, getPassiveIncome, BASE_INVENTORY_SIZE, MAX_BOT_INVENTORY_SIZE, BOT_PROFILES, getRebirthCost, REBIRTH_MULTIPLIER_BONUS } from './constants';
 import { ShieldAlert } from 'lucide-react';
 
 const INITIAL_STATE: GameState = {
@@ -22,7 +22,7 @@ const INITIAL_STATE: GameState = {
   shieldActive: false,
   streakBonusMult: 1,
   bots: [],
-  nextAttackTime: Date.now() + 30000,
+  nextAttackTime: Date.now() + 60000, // Start with 60s grace period
   consecutiveTimeouts: 0,
   rebirths: 0
 };
@@ -91,7 +91,7 @@ export default function App() {
 
     // Migration for nextAttackTime
     if (!state.nextAttackTime) {
-        state.nextAttackTime = Date.now() + 30000;
+        state.nextAttackTime = Date.now() + 60000;
     }
     
     // Migration for consecutiveTimeouts
@@ -302,18 +302,19 @@ export default function App() {
 
   const handleStartGame = () => {
     setShowHelp(false);
-    // Reset attack timer when starting game to ensure 30s grace period
+    // Reset attack timer when starting game to ensure 60s grace period
     setGameState(prev => ({
         ...prev,
-        nextAttackTime: Date.now() + 30000
+        nextAttackTime: Date.now() + 60000
     }));
   };
 
   const handleDefendBase = () => {
       setActiveAttack(null);
+      // Reset timer to random between 60s and 90s
       setGameState(prev => ({
           ...prev,
-          nextAttackTime: Date.now() + 30000 // Reset timer
+          nextAttackTime: Date.now() + 60000 + Math.random() * 30000
       }));
       setAttackNotification({ message: "BASE DEFENDED!", success: true });
       setTimeout(() => setAttackNotification(null), 2000);
@@ -371,7 +372,7 @@ export default function App() {
               timerBonus: stats.timerBonus,
               streakBonusMult: stats.streakBonusMult,
               shieldActive: hasShieldItem ? prev.shieldActive : false,
-              nextAttackTime: Date.now() + 30000 // Reset timer
+              nextAttackTime: Date.now() + 60000 + Math.random() * 30000 // Reset timer (60-90s)
           };
       });
   };
@@ -479,8 +480,10 @@ export default function App() {
   };
 
   const handleBuyItem = (item: BrainrotItem) => {
+    const maxInventorySize = BASE_INVENTORY_SIZE + gameState.rebirths;
+
     if (gameState.money < item.price) return;
-    if (gameState.inventory.length >= MAX_INVENTORY_SIZE) return;
+    if (gameState.inventory.length >= maxInventorySize) return;
     if (gameState.inventory.includes(item.id)) return;
 
     setGameState(prev => {
@@ -525,7 +528,7 @@ export default function App() {
   };
 
   const handleRebirth = () => {
-      const nextRebirthCost = BASE_REBIRTH_COST * (gameState.rebirths + 1);
+      const nextRebirthCost = getRebirthCost(gameState.rebirths + 1);
       
       if (gameState.money < nextRebirthCost) return;
 
@@ -560,7 +563,7 @@ export default function App() {
               consecutiveTimeouts: 0,
               bots: resetBots,
               rebirths: newRebirthCount,
-              nextAttackTime: Date.now() + 30000
+              nextAttackTime: Date.now() + 60000 // 60s grace
           };
       });
   };
@@ -635,8 +638,10 @@ export default function App() {
                   };
               }
               
+              const maxInventorySize = BASE_INVENTORY_SIZE + prev.rebirths;
+
               // If player has space, give item. Else give cash value.
-              if (newInventory.length < MAX_INVENTORY_SIZE) {
+              if (newInventory.length < maxInventorySize) {
                   if (!newInventory.includes(itemId)) { // Ensure unique
                       newInventory.push(itemId);
                   } else {

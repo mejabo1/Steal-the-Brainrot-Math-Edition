@@ -36,8 +36,9 @@ export const MathGame: React.FC<MathGameProps> = ({
     
     // Calculate dynamic time:
     // HARD MODE: If money >= 1,000,000, base time drops to 10s (from 30s)
-    const currentBaseTime = gameState.money >= 1000000 ? 10 : BASE_QUESTION_TIME;
+    let currentBaseTime = gameState.money >= 1000000 ? 10 : BASE_QUESTION_TIME;
     
+    // No Rebirth Penalty anymore
     const calculatedTime = currentBaseTime + gameState.timerBonus;
     
     // Capping at 300s (5 mins)

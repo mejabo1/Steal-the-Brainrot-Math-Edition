@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Crown, AlertTriangle, TrendingUp, Check, X } from 'lucide-react';
-import { BASE_REBIRTH_COST, REBIRTH_MULTIPLIER_BONUS } from '../constants';
+import { REBIRTH_MULTIPLIER_BONUS, getRebirthCost } from '../constants';
 
 interface RebirthModalProps {
   currentRebirths: number;
@@ -12,7 +12,7 @@ interface RebirthModalProps {
 
 export const RebirthModal: React.FC<RebirthModalProps> = ({ currentRebirths, money, onConfirm, onCancel }) => {
   const nextRebirth = currentRebirths + 1;
-  const cost = BASE_REBIRTH_COST * nextRebirth;
+  const cost = getRebirthCost(nextRebirth);
   const canAfford = money >= cost;
 
   // Stats
@@ -68,6 +68,7 @@ export const RebirthModal: React.FC<RebirthModalProps> = ({ currentRebirths, mon
                         <li>Rank {nextRebirth} Crown</li>
                         <li><span className="text-white font-bold">+{REBIRTH_MULTIPLIER_BONUS}x</span> Permanent Multiplier</li>
                         <li>Current: {currentBonus.toFixed(1)}x → <span className="text-green-300 font-bold">{nextBonus.toFixed(1)}x</span></li>
+                        <li className="text-yellow-300 font-bold mt-1">+1 Inventory Slot</li>
                     </ul>
                 </div>
             </div>

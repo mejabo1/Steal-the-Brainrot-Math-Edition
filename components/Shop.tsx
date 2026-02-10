@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { BrainrotItem, GameState } from '../types';
-import { getPassiveIncome, SHOP_ITEMS, MAX_INVENTORY_SIZE, BASE_REBIRTH_COST } from '../constants';
+import { getPassiveIncome, SHOP_ITEMS, BASE_INVENTORY_SIZE, getRebirthCost } from '../constants';
 import { ShoppingBag, Lock, Check, Timer, Backpack, Zap, Trash2, Crown } from 'lucide-react';
 import { RebirthModal } from './RebirthModal';
 
@@ -18,12 +18,14 @@ export const Shop: React.FC<ShopProps> = ({ gameState, shopRotation, shopTimer, 
   const [viewMode, setViewMode] = useState<'shop' | 'inventory'>('shop');
   const [showRebirthModal, setShowRebirthModal] = useState(false);
 
+  const maxInventorySize = BASE_INVENTORY_SIZE + gameState.rebirths;
+
   // Filter items for inventory view
   const inventoryItems = SHOP_ITEMS.filter(item => gameState.inventory.includes(item.id));
-  const isInventoryFull = gameState.inventory.length >= MAX_INVENTORY_SIZE;
+  const isInventoryFull = gameState.inventory.length >= maxInventorySize;
 
   // Rebirth Cost Calc
-  const nextRebirthCost = BASE_REBIRTH_COST * (gameState.rebirths + 1);
+  const nextRebirthCost = getRebirthCost(gameState.rebirths + 1);
   const canAffordRebirth = gameState.money >= nextRebirthCost;
 
   const getRarityColor = (rarity: string) => {
@@ -40,7 +42,7 @@ export const Shop: React.FC<ShopProps> = ({ gameState, shopRotation, shopTimer, 
   const renderInventoryGrid = (items: string[], isOwner: boolean) => {
     return (
         <div className="grid grid-cols-2 gap-4 pb-20">
-            {Array.from({ length: MAX_INVENTORY_SIZE }).map((_, index) => {
+            {Array.from({ length: maxInventorySize }).map((_, index) => {
                 const itemId = items[index];
                 const item = itemId ? SHOP_ITEMS.find(i => i.id === itemId) : null;
                 
@@ -167,7 +169,7 @@ export const Shop: React.FC<ShopProps> = ({ gameState, shopRotation, shopTimer, 
                 <div className="text-xs font-medium text-slate-500 flex justify-between items-center bg-white/50 border border-blue-100 p-2 rounded-lg">
                     <span>Capacity</span>
                     <span className={`font-bold ${isInventoryFull ? "text-red-500" : "text-green-600"}`}>
-                        {inventoryItems.length}/{MAX_INVENTORY_SIZE}
+                        {inventoryItems.length}/{maxInventorySize}
                     </span>
                 </div>
             )}
