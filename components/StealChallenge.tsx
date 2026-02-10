@@ -1,9 +1,9 @@
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { MathProblem } from '../types';
 import { generateProblem } from '../services/mathGen';
 import { SHOP_ITEMS } from '../constants';
-import { Timer, SendHorizontal, AlertCircle, CheckCircle2, Siren, Zap } from 'lucide-react';
+import { AlertCircle, CheckCircle2, Siren, Zap } from 'lucide-react';
 
 interface StealChallengeProps {
   targetItem: { botName: string; itemId: string };
@@ -13,17 +13,14 @@ interface StealChallengeProps {
 }
 
 export const StealChallenge: React.FC<StealChallengeProps> = ({ targetItem, difficulty, initialTime, onComplete }) => {
-  const [problem, setProblem] = useState<MathProblem>(generateProblem(difficulty)); 
-  const [userAnswer, setUserAnswer] = useState('');
+  const [problem] = useState<MathProblem>(generateProblem(difficulty)); 
   const [timeLeft, setTimeLeft] = useState(initialTime); 
   const [feedback, setFeedback] = useState<'none' | 'correct' | 'wrong'>('none');
-  const inputRef = useRef<HTMLInputElement>(null);
+  const [selectedOption, setSelectedOption] = useState<string | null>(null);
 
   const item = SHOP_ITEMS.find(i => i.id === targetItem.itemId);
 
   useEffect(() => {
-    inputRef.current?.focus();
-    
     const timer = setInterval(() => {
       setTimeLeft(prev => {
         if (prev <= 0) {
@@ -48,20 +45,12 @@ export const StealChallenge: React.FC<StealChallengeProps> = ({ targetItem, diff
     setTimeout(() => onComplete(true), 1500);
   };
 
-  const normalizeInput = (input: string): string => {
-      return input
-        .replace(/\s/g, '')
-        .toLowerCase()
-        .replace(/(\d)\*([a-z])/g, '$1$2')
-        .replace(/([a-z])\*(\d)/g, '$2$1');
-  };
-
-  const handleSubmit = (e?: React.FormEvent) => {
-    e?.preventDefault();
+  const handleOptionClick = (option: string) => {
     if (feedback !== 'none') return;
-
-    const normalizedUser = normalizeInput(userAnswer);
-    const normalizedAnswer = normalizeInput(problem.answer);
+    
+    setSelectedOption(option);
+    const normalizedUser = option.replace(/\s/g, '').toLowerCase();
+    const normalizedAnswer = problem.answer.replace(/\s/g, '').toLowerCase();
 
     if (normalizedUser === normalizedAnswer) {
         handleSuccess();
@@ -128,26 +117,37 @@ export const StealChallenge: React.FC<StealChallengeProps> = ({ targetItem, diff
                 "{problem.question}"
             </div>
 
-            <form onSubmit={handleSubmit}>
-                <input 
-                    ref={inputRef}
-                    type="text" 
-                    value={userAnswer}
-                    onChange={(e) => setUserAnswer(e.target.value)}
-                    className="w-full h-14 bg-slate-900 border-2 border-slate-600 rounded-xl text-center text-2xl font-bold text-white focus:outline-none focus:border-red-500 font-mono mb-4"
-                    placeholder="Type answer..."
-                    autoFocus
+            <div className="grid grid-cols-2 gap-3 mb-4">
+                {problem.options.map((option, index) => {
+                    const isSelected = selectedOption === option;
+                    return (
+                        <button
+                            key={index}
+                            disabled={feedback !== 'none'}
+                            onClick={() => handleOptionClick(option)}
+                            className={`
+                                h-16 rounded-xl text-xl font-bold font-mono transition-all btn-press shadow-md
+                                ${isSelected 
+                                    ? 'bg-slate-700 text-white scale-95 border-2 border-white' 
+                                    : 'bg-slate-900 border-2 border-slate-600 text-white hover:bg-slate-700 hover:border-red-400'
+                                }
+                            `}
+                        >
+                            {option}
+                        </button>
+                    );
+                })}
+            </div>
+
+            <div className="w-full h-4 bg-slate-700 rounded-full overflow-hidden relative">
+                <div 
+                    className={`h-full transition-all duration-1000 ease-linear ${timeLeft <= 3 ? 'bg-red-600' : 'bg-yellow-500'}`}
+                    style={{ width: `${(timeLeft / initialTime) * 100}%` }}
                 />
-                <div className="w-full h-4 bg-slate-700 rounded-full overflow-hidden relative">
-                    <div 
-                        className={`h-full transition-all duration-1000 ease-linear ${timeLeft <= 3 ? 'bg-red-600' : 'bg-yellow-500'}`}
-                        style={{ width: `${(timeLeft / initialTime) * 100}%` }}
-                    />
-                     <div className="absolute inset-0 flex items-center justify-center text-[10px] font-black text-white drop-shadow-md">
-                        {timeLeft}s
-                     </div>
-                </div>
-            </form>
+                    <div className="absolute inset-0 flex items-center justify-center text-[10px] font-black text-white drop-shadow-md">
+                    {timeLeft}s
+                    </div>
+            </div>
         </div>
       </div>
     </div>

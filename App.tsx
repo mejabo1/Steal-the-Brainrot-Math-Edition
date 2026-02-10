@@ -8,8 +8,8 @@ import { StatusHeader } from './components/StatusHeader';
 import { HelpModal } from './components/HelpModal';
 import { StealChallenge } from './components/StealChallenge';
 import { BaseDefense } from './components/BaseDefense';
-import { SHOP_ITEMS, getPassiveIncome, MAX_INVENTORY_SIZE, BOT_PROFILES } from './constants';
-import { ShieldAlert } from 'lucide-react';
+import { SHOP_ITEMS, getPassiveIncome, MAX_INVENTORY_SIZE, MAX_BOT_INVENTORY_SIZE, BOT_PROFILES } from './constants';
+import { ShieldAlert, Coins } from 'lucide-react';
 
 const INITIAL_STATE: GameState = {
   money: 0,
@@ -57,8 +57,8 @@ export default function App() {
         
         // Give bots some starter items
         state.bots.forEach((bot: Bot) => {
-            // Give 3-5 random items
-            const count = 3 + Math.floor(Math.random() * 3);
+            // Give 2-3 random items to start (so they don't start full)
+            const count = 2 + Math.floor(Math.random() * 2);
             for(let i=0; i<count; i++) {
                 let pool = SHOP_ITEMS.filter(item => item.price < 1000);
                 
@@ -82,7 +82,9 @@ export default function App() {
             isVulnerable: bot.isVulnerable ?? false,
             nextVulnerableTime: bot.nextVulnerableTime ?? (Date.now() + Math.random() * 30000),
             vulnerableUntil: bot.vulnerableUntil ?? 0,
-            nextBuyTime: bot.nextBuyTime ?? (Date.now() + Math.random() * 60000)
+            nextBuyTime: bot.nextBuyTime ?? (Date.now() + Math.random() * 60000),
+            // Enforce new limit on existing bots
+            inventory: bot.inventory.slice(0, MAX_BOT_INVENTORY_SIZE)
         }));
     }
 
@@ -190,7 +192,7 @@ export default function App() {
         // 0. Base Defense Check
         // Only trigger if not already under attack, help closed, and not currently stealing
         if (!activeAttack && now > gameState.nextAttackTime) {
-            setActiveAttack({ expiresAt: now + 8000 }); // 8 seconds to solve math
+            setActiveAttack({ expiresAt: now + 14000 }); // 14 seconds
         }
 
         // Check for Attack Fail
@@ -222,8 +224,8 @@ export default function App() {
                 if (now > updatedBot.nextVulnerableTime) {
                     updatedBot.isVulnerable = true;
                     
-                    // Default Duration: 10-20s
-                    let duration = 10000 + Math.random() * 10000;
+                    // Default Duration: 5-10s (Max 10s)
+                    let duration = 5000 + Math.random() * 5000;
                     
                     // Mr. Gremillion: sleeps for 3-5s (Harder/Faster)
                     if (updatedBot.name === "Mr. Gremillion") {
@@ -235,7 +237,7 @@ export default function App() {
             }
 
             // Buying Logic: Every 60 seconds (Fixed)
-            if (updatedBot.inventory.length < MAX_INVENTORY_SIZE && now > updatedBot.nextBuyTime) {
+            if (updatedBot.inventory.length < MAX_BOT_INVENTORY_SIZE && now > updatedBot.nextBuyTime) {
                 let pool = SHOP_ITEMS.filter(i => !updatedBot.inventory.includes(i.id));
                 
                 // Coaches ONLY buy common items
@@ -326,7 +328,7 @@ export default function App() {
                   newInventory.splice(itemIdx, 1);
                   
                   // Give to random bot if they have space
-                  const validBots = newBots.filter(b => b.inventory.length < MAX_INVENTORY_SIZE);
+                  const validBots = newBots.filter(b => b.inventory.length < MAX_BOT_INVENTORY_SIZE);
                   if (validBots.length > 0) {
                       const thiefIndex = Math.floor(Math.random() * validBots.length);
                       const realBotIndex = newBots.findIndex(b => b.id === validBots[thiefIndex].id);
@@ -428,7 +430,7 @@ export default function App() {
                 // Give to random bot (if space)
                 const botIndex = Math.floor(Math.random() * nextState.bots.length);
                 const bot = nextState.bots[botIndex];
-                if (bot.inventory.length < MAX_INVENTORY_SIZE) {
+                if (bot.inventory.length < MAX_BOT_INVENTORY_SIZE) {
                     const newBots = [...nextState.bots];
                     newBots[botIndex] = {
                         ...bot,
@@ -517,42 +519,42 @@ export default function App() {
       if (!item) return;
 
       let difficulty = 2000;
-      let timeLimit = 12;
+      let timeLimit = 20; // STARTING at 20s for common
 
       // Scaling based on rarity
       switch (item.rarity) {
           case 'common':
-              difficulty = 2000; // Level 3/4
-              timeLimit = 12;
+              difficulty = 2000; 
+              timeLimit = 20;
               break;
           case 'rare':
-              difficulty = 4000; // Level 4
-              timeLimit = 10;
+              difficulty = 4000; 
+              timeLimit = 18;
               break;
           case 'epic':
-              difficulty = 8000; // Level 5
-              timeLimit = 8;
+              difficulty = 8000; 
+              timeLimit = 16;
               break;
           case 'legendary':
-              difficulty = 15000; // High Level 5
-              timeLimit = 5; // Very fast
+              difficulty = 15000; 
+              timeLimit = 14;
               break;
           case 'mythic':
-              difficulty = 30000; // Max Difficulty
-              timeLimit = 3; // Extreme
+              difficulty = 30000; 
+              timeLimit = 12;
               break;
       }
 
       // MR GREMILLION MODIFIER: HARDER
       if (bot.name === "Mr. Gremillion") {
           difficulty += 5000; 
-          timeLimit = Math.max(3, timeLimit - 4); // Reduce time drastically
+          timeLimit = Math.max(5, timeLimit - 4); 
       }
 
       // COACH MODIFIER: EASIER
       if (bot.name.includes("Coach")) {
           difficulty = Math.max(1000, difficulty - 1500); 
-          timeLimit += 5; // Extra time
+          timeLimit += 8; // Extra time
       }
 
       setActiveSteal({ bot, itemId, difficulty, timeLimit });
@@ -612,7 +614,7 @@ export default function App() {
                   newInventory.splice(randomIdx, 1);
                   
                   if (targetBotIndex > -1) {
-                      if (newBots[targetBotIndex].inventory.length < MAX_INVENTORY_SIZE) {
+                      if (newBots[targetBotIndex].inventory.length < MAX_BOT_INVENTORY_SIZE) {
                           if (!newBots[targetBotIndex].inventory.includes(lostItemId)) {
                              newBots[targetBotIndex].inventory.push(lostItemId);
                           }
@@ -644,7 +646,7 @@ export default function App() {
   };
 
   return (
-    <div className="flex flex-col h-screen w-screen overflow-hidden bg-slate-100 font-sans">
+    <div className="flex flex-col h-screen w-screen overflow-hidden bg-slate-900 font-sans">
         {showHelp && <HelpModal onStart={handleStartGame} />}
         
         {activeAttack && (
@@ -676,14 +678,27 @@ export default function App() {
         <StatusHeader gameState={gameState} />
         
         <div className="flex flex-1 flex-col md:flex-row overflow-hidden relative">
-            <aside className="w-full md:w-sidebar h-30pct md:h-full order-2 md:order-1 z-20 shadow-xl bg-white border-r border-slate-200">
-                <RivalsList 
-                    gameState={gameState}
-                    onStealAttempt={startSteal}
+            <aside className="w-full md:w-shop h-30pct md:h-full order-3 md:order-1 z-20 shadow-xl bg-white border-r border-slate-200">
+                <Shop 
+                    gameState={gameState} 
+                    shopRotation={shopRotation}
+                    shopTimer={shopTimer}
+                    onBuyItem={handleBuyItem} 
+                    onSellItem={handleSellItem}
                 />
             </aside>
 
-            <main className="flex-1 relative order-1 md:order-2 h-40pct md:h-full overflow-hidden bg-radial-slate">
+            <main className="flex-1 relative order-1 md:order-2 h-40pct md:h-full overflow-hidden bg-gradient-to-br from-violet-600 to-indigo-600 shadow-[inset_0_0_20px_rgba(0,0,0,0.3)]">
+                {/* Money HUD - Top Left Overlay */}
+                <div className="absolute top-4 left-4 z-30 flex items-center gap-3 bg-slate-900/60 backdrop-blur-md px-4 py-2.5 rounded-2xl border border-white/10 shadow-xl text-white hover:bg-slate-900/80 transition-colors cursor-default select-none group">
+                    <div className="bg-gradient-to-br from-yellow-400 to-yellow-600 p-2 rounded-full shadow-lg group-hover:scale-110 transition-transform">
+                        <Coins className="text-white drop-shadow-md" size={20} />
+                    </div>
+                    <span className="font-black text-2xl tracking-tight drop-shadow-lg tabular-nums text-transparent bg-clip-text bg-gradient-to-r from-white to-slate-200">
+                        ${gameState.money.toLocaleString()}
+                    </span>
+                </div>
+
                 <MathGame 
                     gameState={gameState} 
                     isPaused={showHelp || !!activeSteal || !!activeAttack}
@@ -701,13 +716,10 @@ export default function App() {
                 )}
             </main>
 
-            <aside className="w-full md:w-shop h-30pct md:h-full order-3 z-20 shadow-xl bg-white border-l border-slate-200">
-                <Shop 
-                    gameState={gameState} 
-                    shopRotation={shopRotation}
-                    shopTimer={shopTimer}
-                    onBuyItem={handleBuyItem} 
-                    onSellItem={handleSellItem}
+            <aside className="w-full md:w-sidebar h-30pct md:h-full order-2 md:order-3 z-20 shadow-xl bg-white border-l border-slate-200">
+                <RivalsList 
+                    gameState={gameState}
+                    onStealAttempt={startSteal}
                 />
             </aside>
         </div>

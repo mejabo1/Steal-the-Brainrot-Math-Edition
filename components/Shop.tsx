@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { BrainrotItem, GameState } from '../types';
 import { getPassiveIncome, SHOP_ITEMS, MAX_INVENTORY_SIZE } from '../constants';
@@ -20,29 +21,29 @@ export const Shop: React.FC<ShopProps> = ({ gameState, shopRotation, shopTimer, 
 
   const getRarityColor = (rarity: string) => {
     switch (rarity) {
-        case 'common': return 'border-green-200 text-green-600';
-        case 'rare': return 'border-blue-200 text-blue-600';
-        case 'epic': return 'border-purple-200 text-purple-600';
-        case 'legendary': return 'border-yellow-200 text-yellow-600';
-        case 'mythic': return 'border-red-200 text-red-600';
-        default: return 'border-slate-200 text-slate-600';
+        case 'common': return 'bg-green-100 text-green-700';
+        case 'rare': return 'bg-blue-100 text-blue-700';
+        case 'epic': return 'bg-purple-100 text-purple-700';
+        case 'legendary': return 'bg-yellow-100 text-yellow-700';
+        case 'mythic': return 'bg-red-100 text-red-700';
+        default: return 'bg-slate-100 text-slate-700';
     }
   };
 
   const renderInventoryGrid = (items: string[], isOwner: boolean) => {
     return (
-        <div className="grid grid-cols-2 gap-3 pb-20">
+        <div className="grid grid-cols-2 gap-4 pb-20">
             {Array.from({ length: MAX_INVENTORY_SIZE }).map((_, index) => {
                 const itemId = items[index];
                 const item = itemId ? SHOP_ITEMS.find(i => i.id === itemId) : null;
                 
                 if (!item) {
                      return (
-                         <div key={`empty-${index}`} className="aspect-[4/5] rounded-2xl border-2 border-dashed border-slate-300 bg-slate-50 flex flex-col items-center justify-center text-slate-300">
-                             <div className="bg-slate-100 p-3 rounded-full mb-2">
-                                <Lock size={20} />
+                         <div key={`empty-${index}`} className="aspect-[3/4] rounded-xl border border-dashed border-slate-300 bg-slate-50 flex flex-col items-center justify-center text-slate-300">
+                             <div className="bg-white p-2 rounded-full mb-2 shadow-sm">
+                                <Lock size={16} />
                              </div>
-                             <span className="text-xs font-bold uppercase tracking-wider">Empty Slot</span>
+                             <span className="text-[10px] font-bold uppercase tracking-wide">Empty</span>
                          </div>
                      );
                 }
@@ -51,23 +52,20 @@ export const Shop: React.FC<ShopProps> = ({ gameState, shopRotation, shopTimer, 
                 const rarityStyle = getRarityColor(item.rarity);
                 
                 return (
-                    <div key={`${item.id}-${index}`} className="aspect-[4/5] rounded-2xl border-2 border-slate-200 bg-white shadow-sm flex flex-col relative overflow-hidden group hover:border-blue-300 transition-colors">
-                         {/* Header Color Strip */}
-                         <div className={`absolute top-0 left-0 w-full h-1.5 ${item.color}`} />
-                         
-                         <div className="flex-1 flex flex-col items-center justify-center p-2 text-center min-h-0">
-                              <div className="text-3xl mb-2 drop-shadow-sm transform group-hover:scale-110 transition-transform">{item.emoji}</div>
+                    <div key={`${item.id}-${index}`} className="aspect-[3/4] rounded-xl border border-slate-200 bg-white shadow-sm flex flex-col relative overflow-hidden group hover:border-blue-300 transition-colors">
+                         <div className="flex-1 flex flex-col items-center justify-center p-3 text-center min-h-0">
+                              <div className="text-2xl mb-3 drop-shadow-sm transform group-hover:scale-110 transition-transform">{item.emoji}</div>
                               
-                              <div className="font-bold text-slate-800 text-sm leading-tight line-clamp-2 w-full mb-1 h-10 flex items-center justify-center">
+                              <div className="font-semibold text-slate-800 text-xs leading-tight line-clamp-2 w-full mb-2">
                                 {item.name}
                               </div>
                               
-                              <div className={`text-[10px] uppercase font-black px-1.5 py-0.5 rounded border mb-2 bg-opacity-10 bg-white scale-90 origin-center ${rarityStyle}`}>
+                              <div className={`text-[9px] uppercase font-bold px-1.5 py-0.5 rounded mb-2 ${rarityStyle}`}>
                                     {item.rarity}
                               </div>
 
-                              <div className="bg-green-50 text-green-700 px-2 py-1 rounded-lg text-xs font-bold flex items-center gap-1 mb-1">
-                                  <Zap size={12} fill="currentColor" />
+                              <div className="bg-slate-50 text-slate-600 px-1.5 py-0.5 rounded text-[10px] font-bold flex items-center gap-1">
+                                  <Zap size={10} fill="currentColor" className="text-yellow-500" />
                                   <span>+${passiveIncome}/s</span>
                               </div>
                          </div>
@@ -76,7 +74,7 @@ export const Shop: React.FC<ShopProps> = ({ gameState, shopRotation, shopTimer, 
                              {isOwner && (
                                  <button 
                                     onClick={() => onSellItem(item)}
-                                    className="w-full bg-red-50 hover:bg-red-100 text-red-600 text-[10px] font-black py-2 rounded-lg flex items-center justify-center gap-1 transition-colors uppercase border border-red-100 hover:border-red-200"
+                                    className="w-full bg-red-50 hover:bg-red-100 text-red-600 text-[10px] font-bold py-1.5 rounded-lg flex items-center justify-center gap-1 transition-colors uppercase"
                                  >
                                     <Trash2 size={12} />
                                     Sell
@@ -91,51 +89,51 @@ export const Shop: React.FC<ShopProps> = ({ gameState, shopRotation, shopTimer, 
   };
 
   return (
-    <div className="flex flex-col w-full h-full bg-slate-50 border-l border-slate-200">
-      <div className="bg-white border-b border-slate-200 shadow-sm z-10">
+    <div className="flex flex-col w-full h-full bg-blue-50/80">
+      <div className="bg-blue-100/80 border-b border-blue-200 z-10">
         <div className="p-4 pb-0">
-            <h2 className="text-xl font-black text-slate-800 flex items-center gap-2 mb-4">
-                <ShoppingBag className="text-purple-500" />
-                <span>Brainrot Shop</span>
+            <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2 mb-4">
+                <ShoppingBag className="text-purple-600" size={20} />
+                <span>Marketplace</span>
             </h2>
             
-            <div className="flex gap-1 bg-slate-100 p-1 rounded-xl mb-4">
+            <div className="flex gap-1 bg-white/50 p-1 rounded-lg mb-4">
                 <button 
                     onClick={() => setViewMode('shop')}
-                    className={`flex-1 py-2 rounded-lg text-xs font-bold flex items-center justify-center gap-1 transition-all ${viewMode === 'shop' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:bg-slate-200'}`}
+                    className={`flex-1 py-1.5 rounded-md text-xs font-semibold flex items-center justify-center gap-1.5 transition-all ${viewMode === 'shop' ? 'bg-white text-blue-900 shadow-sm' : 'text-blue-600 hover:text-blue-800'}`}
                 >
-                    <ShoppingBag size={14} /> Shop
+                    <ShoppingBag size={14} /> Buy
                 </button>
                 <button 
                     onClick={() => setViewMode('inventory')}
-                    className={`flex-1 py-2 rounded-lg text-xs font-bold flex items-center justify-center gap-1 transition-all ${viewMode === 'inventory' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:bg-slate-200'}`}
+                    className={`flex-1 py-1.5 rounded-md text-xs font-semibold flex items-center justify-center gap-1.5 transition-all ${viewMode === 'inventory' ? 'bg-white text-blue-900 shadow-sm' : 'text-blue-600 hover:text-blue-800'}`}
                 >
-                    <Backpack size={14} /> Bag
+                    <Backpack size={14} /> Inventory
                 </button>
             </div>
         </div>
         
-        <div className="px-4 pb-2">
+        <div className="px-4 pb-3">
             {viewMode === 'shop' && (
-                <div className="flex items-center gap-2 text-xs font-bold text-slate-500 bg-slate-100 p-2 rounded-lg">
-                    <Timer size={14} className="animate-spin-slow" />
+                <div className="flex items-center gap-2 text-xs font-medium text-slate-500 bg-white/50 border border-blue-100 p-2 rounded-lg">
+                    <Timer size={14} className="animate-spin-slow text-blue-500" />
                     <span>Restock in:</span>
-                    <span className={`text-sm ${shopTimer <= 3 ? 'text-red-500' : 'text-blue-500'}`}>
+                    <span className={`font-bold ${shopTimer <= 3 ? 'text-red-500' : 'text-slate-700'}`}>
                         {shopTimer}s
                     </span>
-                    <div className="flex-1 h-2 bg-slate-200 rounded-full ml-2 overflow-hidden">
+                    <div className="flex-1 h-1.5 bg-slate-200 rounded-full ml-2 overflow-hidden">
                         <div 
-                            className="h-full bg-blue-400 transition-all duration-1000 ease-linear"
+                            className="h-full bg-blue-500 transition-all duration-1000 ease-linear"
                             style={{ width: `${(shopTimer / 10) * 100}%` }}
                         />
                     </div>
                 </div>
             )}
             {viewMode === 'inventory' && (
-                <div className="text-xs font-bold text-slate-500 flex justify-between items-center bg-slate-100 p-2 rounded-lg">
-                    <span>Inventory Slots</span>
-                    <span className={isInventoryFull ? "text-red-500" : "text-green-600"}>
-                        {inventoryItems.length}/{MAX_INVENTORY_SIZE} Used
+                <div className="text-xs font-medium text-slate-500 flex justify-between items-center bg-white/50 border border-blue-100 p-2 rounded-lg">
+                    <span>Capacity</span>
+                    <span className={`font-bold ${isInventoryFull ? "text-red-500" : "text-green-600"}`}>
+                        {inventoryItems.length}/{MAX_INVENTORY_SIZE}
                     </span>
                 </div>
             )}
@@ -144,7 +142,7 @@ export const Shop: React.FC<ShopProps> = ({ gameState, shopRotation, shopTimer, 
 
       <div className="flex-1 overflow-y-auto p-4 custom-scrollbar">
         {viewMode === 'shop' && (
-            <div className="grid grid-cols-1 gap-3 pb-20">
+            <div className="grid grid-cols-1 gap-4 pb-20">
                 {shopRotation.map((item) => {
                     const isOwned = gameState.inventory.includes(item.id);
                     const canAfford = gameState.money >= item.price;
@@ -160,44 +158,43 @@ export const Shop: React.FC<ShopProps> = ({ gameState, shopRotation, shopTimer, 
                                 }
                             }}
                             className={`
-                                relative group p-3 rounded-2xl border-2 transition-all duration-200
+                                relative p-4 rounded-xl border transition-all duration-200
                                 ${isOwned 
-                                    ? 'bg-green-50 border-green-200 opacity-90' 
+                                    ? 'bg-green-50 border-green-200' 
                                     : (!canAfford || isInventoryFull)
-                                        ? 'bg-slate-100 border-slate-200 opacity-80 cursor-not-allowed grayscale-[0.3]'
-                                        : 'bg-white border-slate-200 cursor-pointer hover:-translate-y-1 hover:shadow-lg hover:border-purple-300 btn-press active:translate-y-0'
+                                        ? 'bg-slate-50 border-slate-200 opacity-60 cursor-not-allowed'
+                                        : 'bg-white border-blue-100 cursor-pointer hover:shadow-md hover:border-purple-200 btn-press active:translate-y-0'
                                 }
                             `}
                         >
-                            <div className="flex items-start gap-3">
-                                <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-2xl shadow-sm ${item.color} text-white`}>
+                            <div className="flex items-start gap-4">
+                                <div className={`w-12 h-12 rounded-lg flex items-center justify-center text-2xl bg-slate-50 border border-slate-100`}>
                                     {item.emoji}
                                 </div>
                                 <div className="flex-1 min-w-0">
-                                    <div className="flex justify-between items-start">
-                                        <h3 className="font-bold text-slate-800 leading-tight truncate pr-2">{item.name}</h3>
-                                        <span className={`text-[10px] uppercase font-black px-1.5 py-0.5 rounded border ${rarityStyle} bg-opacity-10 bg-white`}>
+                                    <div className="flex justify-between items-start mb-1">
+                                        <h3 className="font-bold text-slate-800 text-sm truncate">{item.name}</h3>
+                                        <span className={`text-[9px] uppercase font-bold px-1.5 py-0.5 rounded ${rarityStyle}`}>
                                             {item.rarity}
                                         </span>
                                     </div>
                                     
-                                    <div className="flex flex-wrap gap-1 mt-1 mb-1">
-                                        <span className="text-[10px] font-bold bg-yellow-100 text-yellow-700 px-1.5 py-0.5 rounded flex items-center gap-0.5">
-                                            <Zap size={10} /> +${passiveIncome}/s
-                                        </span>
-                                    </div>
-
-                                    <p className="text-xs text-slate-500 font-semibold leading-relaxed line-clamp-2">
+                                    <p className="text-xs text-slate-500 leading-snug mb-2">
                                         {item.description}
                                     </p>
 
-                                    <div className="mt-2 flex items-center justify-between">
+                                    <div className="flex items-center justify-between">
+                                        <div className="flex items-center gap-1 text-[10px] font-bold text-slate-400">
+                                            <Zap size={10} className="text-yellow-500" fill="currentColor" />
+                                            +${passiveIncome}/s
+                                        </div>
+
                                         {isOwned ? (
-                                            <span className="bg-green-100 text-green-700 text-xs px-2 py-1 rounded-full font-bold flex items-center gap-1">
-                                                <Check size={12} /> COLLECTED
+                                            <span className="text-green-600 text-xs font-bold flex items-center gap-1">
+                                                <Check size={12} /> Owned
                                             </span>
                                         ) : (
-                                            <span className={`text-sm font-black px-2 py-0.5 rounded-lg ${canAfford && !isInventoryFull ? 'bg-purple-100 text-purple-700' : 'bg-slate-200 text-slate-500'}`}>
+                                            <span className={`text-xs font-bold px-2 py-1 rounded-md ${canAfford && !isInventoryFull ? 'bg-slate-900 text-white' : 'bg-slate-200 text-slate-400'}`}>
                                                 ${item.price.toLocaleString()}
                                             </span>
                                         )}
@@ -206,17 +203,13 @@ export const Shop: React.FC<ShopProps> = ({ gameState, shopRotation, shopTimer, 
                             </div>
 
                             {!canAfford && !isOwned && (
-                                <div className="absolute top-2 right-2 text-slate-300">
-                                    <Lock size={16} />
+                                <div className="absolute top-3 right-3 text-slate-300">
+                                    <Lock size={14} />
                                 </div>
                             )}
                         </div>
                     );
                 })}
-                
-                {shopRotation.length === 0 && (
-                    <div className="text-center p-4 text-slate-400 font-bold">Loading shop...</div>
-                )}
             </div>
         )}
         

@@ -2,6 +2,7 @@
 export interface MathProblem {
   question: string;
   answer: string;
+  options: string[]; // Array of 4 choices including the answer
   difficulty: number; // 1-5
 }
 

@@ -1,9 +1,10 @@
 
 import { BrainrotItem } from './types';
 
-export const BASE_QUESTION_TIME = 15; // Seconds
+export const BASE_QUESTION_TIME = 30; // Changed to 30s
 export const BASE_MONEY_REWARD = 10;
 export const MAX_INVENTORY_SIZE = 8;
+export const MAX_BOT_INVENTORY_SIZE = 4;
 
 // Helper to calculate passive income based on price (1% of price per second, min 1)
 export const getPassiveIncome = (price: number): number => {

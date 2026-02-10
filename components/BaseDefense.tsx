@@ -13,12 +13,10 @@ interface BaseDefenseProps {
 export const BaseDefense: React.FC<BaseDefenseProps> = ({ expiresAt, onDefend, difficulty }) => {
   const [timeLeft, setTimeLeft] = useState(0);
   const [problem] = useState<MathProblem>(generateProblem(difficulty));
-  const [userAnswer, setUserAnswer] = useState('');
   const [isWrong, setIsWrong] = useState(false);
-  const inputRef = useRef<HTMLInputElement>(null);
+  const [selectedOption, setSelectedOption] = useState<string | null>(null);
 
   useEffect(() => {
-    inputRef.current?.focus();
     const timer = setInterval(() => {
       const remaining = Math.max(0, expiresAt - Date.now());
       setTimeLeft(remaining);
@@ -30,26 +28,20 @@ export const BaseDefense: React.FC<BaseDefenseProps> = ({ expiresAt, onDefend, d
   const isUrgent = timeLeft < 3000;
   const initialDuration = useRef(Math.max(0, expiresAt - Date.now()));
 
-  const normalizeInput = (input: string): string => {
-      return input
-        .replace(/\s/g, '')
-        .toLowerCase()
-        .replace(/(\d)\*([a-z])/g, '$1$2')
-        .replace(/([a-z])\*(\d)/g, '$2$1');
-  };
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    const normalizedUser = normalizeInput(userAnswer);
-    const normalizedAnswer = normalizeInput(problem.answer);
+  const handleOptionClick = (option: string) => {
+    setSelectedOption(option);
+    
+    const normalizedUser = option.replace(/\s/g, '').toLowerCase();
+    const normalizedAnswer = problem.answer.replace(/\s/g, '').toLowerCase();
 
     if (normalizedUser === normalizedAnswer) {
         onDefend();
     } else {
         setIsWrong(true);
-        setUserAnswer('');
-        setTimeout(() => setIsWrong(false), 500);
-        inputRef.current?.focus();
+        setTimeout(() => {
+            setIsWrong(false);
+            setSelectedOption(null);
+        }, 500);
     }
   };
 
@@ -72,7 +64,7 @@ export const BaseDefense: React.FC<BaseDefenseProps> = ({ expiresAt, onDefend, d
             </p>
         </div>
 
-        <div className={`bg-slate-900 border-4 ${isUrgent ? 'border-red-500' : 'border-slate-700'} rounded-3xl p-6 w-full shadow-2xl relative overflow-hidden`}>
+        <div className={`bg-slate-900 border-4 ${isUrgent ? 'border-red-500' : 'border-slate-700'} rounded-3xl p-6 w-full shadow-2xl relative overflow-hidden transition-all ${isWrong ? 'animate-shake border-red-600 bg-red-900/40' : ''}`}>
             {/* Timer Bar */}
              <div className="absolute top-0 left-0 w-full h-2 bg-slate-800">
                 <div 
@@ -87,28 +79,30 @@ export const BaseDefense: React.FC<BaseDefenseProps> = ({ expiresAt, onDefend, d
                     "{problem.question}"
                 </div>
 
-                <form onSubmit={handleSubmit} className="relative">
-                    <input 
-                        ref={inputRef}
-                        type="text" 
-                        value={userAnswer}
-                        onChange={(e) => setUserAnswer(e.target.value)}
-                        className={`w-full h-14 bg-slate-800 border-2 rounded-xl text-center text-2xl font-bold text-white focus:outline-none focus:border-blue-500 font-mono mb-4 transition-all ${isWrong ? 'border-red-500 animate-shake bg-red-900/20' : 'border-slate-600'}`}
-                        placeholder="Answer..."
-                        autoFocus
-                        autoComplete="off"
-                        autoCorrect="off"
-                        autoCapitalize="off"
-                        spellCheck="false"
-                    />
-                    <button 
-                        type="submit"
-                        className="w-full bg-blue-600 hover:bg-blue-500 text-white font-black py-3 rounded-xl flex items-center justify-center gap-2 shadow-lg active:scale-95 transition-transform"
-                    >
-                        <Shield size={20} />
-                        SHIELD ({secondsDisplay}s)
-                    </button>
-                </form>
+                <div className="grid grid-cols-2 gap-3">
+                    {problem.options.map((option, index) => {
+                        const isSelected = selectedOption === option;
+                        return (
+                            <button
+                                key={index}
+                                onClick={() => handleOptionClick(option)}
+                                className={`
+                                    h-16 rounded-xl text-xl font-bold font-mono transition-all btn-press shadow-md flex items-center justify-center
+                                    ${isSelected && isWrong
+                                        ? 'bg-red-600 text-white border-2 border-red-400' 
+                                        : 'bg-slate-800 border-2 border-slate-600 text-white hover:bg-blue-600 hover:border-blue-400'
+                                    }
+                                `}
+                            >
+                                {option}
+                            </button>
+                        );
+                    })}
+                </div>
+                
+                <div className="mt-4 text-center text-xs font-bold text-slate-400 uppercase">
+                    Time Left: {secondsDisplay}s
+                </div>
             </div>
         </div>
       </div>

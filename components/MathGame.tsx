@@ -1,9 +1,9 @@
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { MathProblem, GameState } from '../types';
 import { generateProblem } from '../services/mathGen';
 import { BASE_QUESTION_TIME, BASE_MONEY_REWARD } from '../constants';
-import { Timer, SendHorizontal, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { Timer, AlertCircle, CheckCircle2, Flame } from 'lucide-react';
 
 interface MathGameProps {
   gameState: GameState;
@@ -21,37 +21,31 @@ export const MathGame: React.FC<MathGameProps> = ({
   onTimeUp
 }) => {
   const [problem, setProblem] = useState<MathProblem>(generateProblem(0));
-  const [userAnswer, setUserAnswer] = useState('');
   const [timeLeft, setTimeLeft] = useState(BASE_QUESTION_TIME);
   const [maxTime, setMaxTime] = useState(BASE_QUESTION_TIME);
   const [feedback, setFeedback] = useState<'none' | 'correct' | 'wrong'>('none');
   const [isShake, setIsShake] = useState(false);
-  
-  const inputRef = useRef<HTMLInputElement>(null);
+  const [selectedOption, setSelectedOption] = useState<string | null>(null);
 
   // Generate new problem based on total accumulated money (difficulty score)
   const nextProblem = () => {
     // Difficulty increases as you get richer
     const difficultyScore = gameState.money + (gameState.streak * 50); 
     setProblem(generateProblem(difficultyScore));
-    setUserAnswer('');
+    setSelectedOption(null);
     
     // Calculate dynamic time:
-    // Removed the money penalty. Now time only increases with items.
-    // Base 15s. Infinite timer buff checks for value >= 60.
-    const calculatedTime = BASE_QUESTION_TIME + gameState.timerBonus;
+    // HARD MODE: If money >= 1,000,000, base time drops to 10s (from 30s)
+    const currentBaseTime = gameState.money >= 1000000 ? 10 : BASE_QUESTION_TIME;
     
-    // Check for "infinite" timer buff (value 60 from constant, usually implies super long)
-    const finalTime = gameState.timerBonus >= 60 ? 60 : calculatedTime;
+    const calculatedTime = currentBaseTime + gameState.timerBonus;
+    
+    // Capping at 300s (5 mins)
+    const finalTime = Math.min(300, calculatedTime);
 
     setTimeLeft(finalTime);
     setMaxTime(finalTime);
     setFeedback('none');
-    
-    // Focus input
-    setTimeout(() => {
-        if(inputRef.current && !isPaused) inputRef.current.focus();
-    }, 50);
   };
 
   // Initial load
@@ -59,13 +53,6 @@ export const MathGame: React.FC<MathGameProps> = ({
     nextProblem();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  // Re-focus when unpaused
-  useEffect(() => {
-    if (!isPaused && feedback === 'none' && inputRef.current) {
-        inputRef.current.focus();
-    }
-  }, [isPaused, feedback]);
 
   // Timer Logic
   useEffect(() => {
@@ -92,22 +79,14 @@ export const MathGame: React.FC<MathGameProps> = ({
     setTimeout(nextProblem, 1500);
   };
 
-  const normalizeInput = (input: string): string => {
-      return input
-        .replace(/\s/g, '') // Remove spaces
-        .toLowerCase()
-        // Convert explicit multiplication with variable to implicit (2*x -> 2x)
-        .replace(/(\d)\*([a-z])/g, '$1$2')
-        // Convert reverse implicit to standard (x*2 -> 2x)
-        .replace(/([a-z])\*(\d)/g, '$2$1');
-  };
-
-  const handleSubmit = (e?: React.FormEvent) => {
-    e?.preventDefault();
+  const handleOptionClick = (option: string) => {
     if (feedback !== 'none' || isPaused) return;
+    
+    setSelectedOption(option);
 
-    const normalizedUser = normalizeInput(userAnswer);
-    const normalizedAnswer = normalizeInput(problem.answer);
+    // Normalize for safety, though generator handles it
+    const normalizedUser = option.replace(/\s/g, '').toLowerCase();
+    const normalizedAnswer = problem.answer.replace(/\s/g, '').toLowerCase();
 
     if (normalizedUser === normalizedAnswer) {
         // Correct
@@ -134,11 +113,14 @@ export const MathGame: React.FC<MathGameProps> = ({
   let timerColor = 'bg-green-500';
   if (timerPercentage < 50) timerColor = 'bg-yellow-500';
   if (timerPercentage < 20) timerColor = 'bg-red-500';
+  
+  // Hard Mode Indicator Color
+  const isHardMode = gameState.money >= 1000000;
 
   return (
     <div className="flex flex-col items-center justify-center w-full h-full p-4 sm:p-8">
       {/* Timer Bar */}
-      <div className="w-full max-w-md h-4 bg-gray-200 rounded-full mb-6 overflow-hidden border-2 border-black/10 relative">
+      <div className={`w-full max-w-lg h-3 rounded-full mb-8 overflow-hidden relative backdrop-blur-sm ${isHardMode ? 'bg-red-900/30' : 'bg-black/20'}`}>
         <div 
             className={`h-full transition-all duration-1000 ease-linear ${timerColor}`} 
             style={{ width: `${timerPercentage}%` }}
@@ -153,67 +135,71 @@ export const MathGame: React.FC<MathGameProps> = ({
       </div>
 
       {/* Card */}
-      <div className={`relative w-full max-w-md bg-white rounded-3xl shadow-[0_8px_0_rgba(0,0,0,0.1)] border-4 border-slate-100 p-8 text-center transition-transform ${isShake ? 'shake' : ''}`}>
+      <div className={`relative w-full max-w-2xl bg-white rounded-3xl shadow-2xl border-4 ${isHardMode ? 'border-red-500/50 shadow-red-500/20' : 'border-white/20'} p-8 sm:p-12 text-center transition-transform ${isShake ? 'shake' : ''}`}>
         
         {/* Feedback Overlay */}
         {feedback !== 'none' && (
-             <div className={`absolute inset-0 rounded-[20px] flex items-center justify-center z-10 bg-opacity-90 backdrop-blur-sm ${feedback === 'correct' ? 'bg-green-100/80 text-green-600' : 'bg-red-100/80 text-red-600'}`}>
+             <div className={`absolute inset-0 rounded-3xl flex items-center justify-center z-10 bg-opacity-95 backdrop-blur-sm ${feedback === 'correct' ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600'}`}>
                 <div className="pop flex flex-col items-center">
                     {feedback === 'correct' ? <CheckCircle2 size={64} strokeWidth={3} /> : <AlertCircle size={64} strokeWidth={3} />}
-                    <span className="text-3xl font-black mt-2 uppercase tracking-wide">
-                        {feedback === 'correct' ? 'Nice!' : 'Oof!'}
+                    <span className="text-3xl font-black mt-4 tracking-tight">
+                        {feedback === 'correct' ? 'Correct!' : 'Incorrect'}
                     </span>
                     {feedback === 'wrong' && (
-                        <span className="text-xl font-bold mt-2 text-slate-700">Answer: {problem.answer}</span>
+                        <span className="text-xl font-medium mt-2 text-slate-600">Answer: {problem.answer}</span>
                     )}
                 </div>
              </div>
         )}
 
-        <div className="mb-2 text-slate-400 font-bold tracking-widest text-sm uppercase flex justify-between">
-            <span>Translate This</span>
+        <div className="mb-6 text-slate-400 font-bold tracking-widest text-sm uppercase flex justify-between items-center">
+            <span className="flex items-center gap-2">
+                Translate Expression
+                {isHardMode && <span className="bg-red-600 text-white text-[10px] px-2 py-0.5 rounded-full flex items-center gap-1"><Flame size={10} fill="currentColor"/> HARD MODE</span>}
+            </span>
             {gameState.consecutiveTimeouts === 2 && (
-                <span className="text-red-500 animate-pulse">⚠️ DANGER</span>
+                <span className="text-red-500 animate-pulse flex items-center gap-1"><AlertCircle size={14}/> Danger</span>
             )}
         </div>
-        <div className="text-3xl sm:text-4xl font-black text-slate-800 mb-8 font-mono tracking-tight leading-tight min-h-[4rem] flex items-center justify-center">
+        
+        <div className="text-4xl sm:text-5xl font-black text-slate-800 mb-10 leading-snug min-h-[5rem] flex items-center justify-center">
           "{problem.question}"
         </div>
 
-        <form onSubmit={handleSubmit} className="relative w-full">
-            <input 
-                ref={inputRef}
-                type="text" 
-                inputMode="text"
-                autoComplete="off"
-                autoCorrect="off"
-                value={userAnswer}
-                onChange={(e) => setUserAnswer(e.target.value)}
-                placeholder="e.g. 2x+5"
-                disabled={isPaused}
-                className="w-full h-16 bg-slate-100 rounded-xl text-center text-3xl font-bold text-slate-800 focus:outline-none focus:ring-4 focus:ring-blue-400 border-2 border-transparent transition-all placeholder-slate-300 disabled:opacity-50 disabled:cursor-not-allowed font-mono"
-                autoFocus={!isPaused}
-            />
-            <button 
-                type="submit"
-                disabled={isPaused}
-                className="mt-4 w-full h-14 bg-blue-500 hover:bg-blue-600 disabled:bg-slate-300 disabled:text-slate-400 disabled:border-slate-300 disabled:shadow-none text-white font-black text-xl rounded-xl btn-press shadow-[0_4px_0_rgb(29,78,216)] border-2 border-blue-600 flex items-center justify-center gap-2"
-            >
-                <span>SUBMIT</span>
-                <SendHorizontal size={20} />
-            </button>
-        </form>
+        {/* Options Grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full">
+            {problem.options.map((option, index) => {
+                const isSelected = selectedOption === option;
+                return (
+                    <button
+                        key={index}
+                        disabled={isPaused || feedback !== 'none'}
+                        onClick={() => handleOptionClick(option)}
+                        className={`
+                            h-20 rounded-2xl text-2xl font-bold font-mono transition-all btn-press shadow-md
+                            ${isSelected 
+                                ? 'bg-slate-800 text-white scale-95' 
+                                : 'bg-slate-50 text-slate-800 hover:bg-blue-50 hover:text-blue-600 border-2 border-slate-200 hover:border-blue-200'
+                            }
+                            ${isHardMode ? 'hover:bg-red-50 hover:text-red-600 hover:border-red-200' : ''}
+                        `}
+                    >
+                        {option}
+                    </button>
+                );
+            })}
+        </div>
       </div>
 
       {/* Timer Text */}
-      <div className={`mt-6 flex items-center gap-2 font-bold text-lg ${timeLeft <= 3 ? 'text-red-500 animate-pulse' : 'text-slate-500'}`}>
+      <div className={`mt-8 flex items-center gap-2 font-bold text-lg ${timeLeft <= 5 ? 'text-red-200 animate-pulse' : 'text-indigo-100'}`}>
         <Timer size={20} />
         <span>{timeLeft}s remaining</span>
       </div>
       
       {gameState.consecutiveTimeouts > 0 && (
-          <div className="mt-2 text-red-500 text-xs font-black uppercase tracking-widest bg-red-100 px-3 py-1 rounded-full">
-              {3 - gameState.consecutiveTimeouts} timeouts until item loss!
+          <div className="mt-4 text-red-600 text-xs font-black uppercase tracking-widest bg-red-50 border border-red-100 px-4 py-2 rounded-full animate-bounce">
+              ⚠️ {3 - gameState.consecutiveTimeouts} timeouts until item loss!
           </div>
       )}
     </div>
