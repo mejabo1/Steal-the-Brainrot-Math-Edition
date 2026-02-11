@@ -8,8 +8,9 @@ import { StatusHeader } from './components/StatusHeader';
 import { HelpModal } from './components/HelpModal';
 import { StealChallenge } from './components/StealChallenge';
 import { BaseDefense } from './components/BaseDefense';
+import { AdminPanel } from './components/AdminPanel';
 import { SHOP_ITEMS, getPassiveIncome, BASE_INVENTORY_SIZE, MAX_BOT_INVENTORY_SIZE, BOT_PROFILES, getRebirthCost, REBIRTH_MULTIPLIER_BONUS } from './constants';
-import { ShieldAlert } from 'lucide-react';
+import { ShieldAlert, Play, Terminal } from 'lucide-react';
 
 const INITIAL_STATE: GameState = {
   money: 0,
@@ -110,6 +111,9 @@ export default function App() {
   const [showHelp, setShowHelp] = useState(true);
   const [earnedAnimation, setEarnedAnimation] = useState<{value: number, id: number} | null>(null);
   const [attackNotification, setAttackNotification] = useState<{message: string, success: boolean} | null>(null);
+  const [isGamePaused, setIsGamePaused] = useState(false);
+  const [lastPauseTime, setLastPauseTime] = useState<number | null>(null);
+  const [showAdminPanel, setShowAdminPanel] = useState(false);
   
   // Steal State
   const [activeSteal, setActiveSteal] = useState<{ 
@@ -131,9 +135,77 @@ export default function App() {
     localStorage.setItem('brainrot-math-save', JSON.stringify(gameState));
   }, [gameState]);
 
-  // Shop Rotation Logic
-  useEffect(() => {
-    const shuffleShop = () => {
+  // Pause Toggle Logic
+  const togglePause = () => {
+    if (isGamePaused) {
+        // Resume
+        const now = Date.now();
+        const diff = lastPauseTime ? now - lastPauseTime : 0;
+
+        setGameState(prev => ({
+            ...prev,
+            nextAttackTime: prev.nextAttackTime + diff,
+            bots: prev.bots.map(b => ({
+                ...b,
+                nextVulnerableTime: b.nextVulnerableTime + diff,
+                vulnerableUntil: b.vulnerableUntil > 0 ? b.vulnerableUntil + diff : 0,
+                nextBuyTime: b.nextBuyTime + diff
+            }))
+        }));
+
+        if (activeAttack) {
+            setActiveAttack(prev => prev ? ({ ...prev, expiresAt: prev.expiresAt + diff }) : null);
+        }
+
+        setIsGamePaused(false);
+        setLastPauseTime(null);
+    } else {
+        // Pause
+        setIsGamePaused(true);
+        setLastPauseTime(Date.now());
+    }
+  };
+
+  // Admin Actions
+  const handleAdminAction = (action: string) => {
+      if (gameState.rebirths < 8) return;
+
+      switch(action) {
+          case 'add_money_small':
+              setGameState(prev => ({ ...prev, money: prev.money + 1000000 }));
+              setAttackNotification({ message: "ADMIN: +1M CASH", success: true });
+              break;
+          case 'add_money_large':
+              setGameState(prev => ({ ...prev, money: prev.money + 100000000 }));
+              setAttackNotification({ message: "ADMIN: +100M CASH", success: true });
+              break;
+          case 'infinite_shield':
+              setGameState(prev => ({ ...prev, shieldActive: !prev.shieldActive }));
+              setAttackNotification({ message: "ADMIN: GOD MODE TOGGLED", success: true });
+              break;
+          case 'trigger_attack':
+              setActiveAttack({ expiresAt: Date.now() + 14000 });
+              setShowAdminPanel(false);
+              break;
+          case 'clear_bots':
+               setGameState(prev => ({
+                   ...prev,
+                   bots: prev.bots.map(b => ({ ...b, inventory: [] }))
+               }));
+               setAttackNotification({ message: "ADMIN: BOTS RESET", success: true });
+              break;
+          case 'give_random_item':
+              const mythics = SHOP_ITEMS.filter(i => i.rarity === 'mythic');
+              const randomMythic = mythics[Math.floor(Math.random() * mythics.length)];
+              handleBuyItem({...randomMythic, price: 0}); // Free buy
+              setAttackNotification({ message: `ADMIN: GAVE ${randomMythic.name}`, success: true });
+              break;
+      }
+      setTimeout(() => setAttackNotification(null), 2000);
+  };
+
+  // Helper to generate a new shop rotation
+  const generateNewShopRotation = () => {
         // Separation by rarity
         const commons = SHOP_ITEMS.filter(i => i.rarity === 'common');
         const cheapCommons = commons.filter(i => i.price <= 100);
@@ -167,18 +239,24 @@ export default function App() {
             }
         }
 
-        setShopRotation([...selectedCommons, ...selectedRandoms]);
-        setShopTimer(SHOP_ROTATION_TIME);
-    };
+        return [...selectedCommons, ...selectedRandoms];
+  };
 
-    shuffleShop();
+  // Initial Shop Load
+  useEffect(() => {
+    if (shopRotation.length === 0) {
+        setShopRotation(generateNewShopRotation());
+    }
+  }, []);
 
+  // Shop Timer Logic
+  useEffect(() => {
     const timer = setInterval(() => {
-        if (showHelp || activeSteal || activeAttack) return;
+        if (showHelp || activeSteal || activeAttack || isGamePaused || showAdminPanel) return;
 
         setShopTimer((prev) => {
             if (prev <= 1) {
-                shuffleShop();
+                setShopRotation(generateNewShopRotation());
                 return SHOP_ROTATION_TIME;
             }
             return prev - 1;
@@ -186,12 +264,12 @@ export default function App() {
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [showHelp, activeSteal, activeAttack]);
+  }, [showHelp, activeSteal, activeAttack, isGamePaused, showAdminPanel]);
 
   // Passive Income Logic & Bot AI & Vulnerability Loop & Attack Loop
   useEffect(() => {
     const loop = setInterval(() => {
-        if (showHelp || activeSteal) return; // Don't process if busy stealing
+        if (showHelp || activeSteal || isGamePaused || showAdminPanel) return; // Don't process if busy stealing or paused
         
         const now = Date.now();
 
@@ -272,7 +350,7 @@ export default function App() {
     }, 1000);
 
     return () => clearInterval(loop);
-  }, [gameState.inventory, showHelp, activeSteal, gameState.bots, activeAttack, gameState.nextAttackTime]);
+  }, [gameState.inventory, showHelp, activeSteal, gameState.bots, activeAttack, gameState.nextAttackTime, isGamePaused, showAdminPanel]);
 
   // Calculate stats including Rebirth Bonus
   const calculateStats = (inventoryIds: string[], currentRebirths: number) => {
@@ -482,12 +560,20 @@ export default function App() {
   const handleBuyItem = (item: BrainrotItem) => {
     const maxInventorySize = BASE_INVENTORY_SIZE + gameState.rebirths;
 
+    // Admin overwrite if needed (handled in calling function, here is standard buy)
+    // If price is 0, it's an admin gift
     if (gameState.money < item.price) return;
-    if (gameState.inventory.length >= maxInventorySize) return;
+    if (gameState.inventory.length >= maxInventorySize && item.price > 0) return;
     if (gameState.inventory.includes(item.id)) return;
 
     setGameState(prev => {
-        const newInventory = [...prev.inventory, item.id];
+        // If it's an admin gift (price 0) and inventory is full, replace first item
+        let newInventory = [...prev.inventory];
+        if (item.price === 0 && newInventory.length >= maxInventorySize) {
+            newInventory.shift(); 
+        }
+        newInventory.push(item.id);
+
         const stats = calculateStats(newInventory, prev.rebirths);
         let newShieldActive = prev.shieldActive;
         if (item.effectType === 'shield') newShieldActive = true;
@@ -702,19 +788,61 @@ export default function App() {
   };
 
   return (
-    <div className="flex flex-col h-screen w-screen overflow-hidden bg-slate-900 font-sans">
+    <div className="flex flex-col h-screen w-screen overflow-hidden bg-slate-900 font-sans relative">
         {showHelp && <HelpModal onStart={handleStartGame} />}
         
+        {/* Admin Button (Visible only at Rebirth 8+) */}
+        {gameState.rebirths >= 8 && !showHelp && (
+            <button 
+                onClick={() => setShowAdminPanel(true)}
+                className="fixed bottom-4 right-4 z-[90] bg-green-900/80 border-2 border-green-500 text-green-400 p-3 rounded-full shadow-[0_0_20px_rgba(34,197,94,0.4)] hover:bg-green-800 transition-all btn-press"
+                title="Admin Panel"
+            >
+                <Terminal size={24} />
+            </button>
+        )}
+
+        {showAdminPanel && (
+            <AdminPanel 
+                onClose={() => setShowAdminPanel(false)} 
+                onAction={handleAdminAction}
+            />
+        )}
+        
+        {isGamePaused && !showHelp && !showAdminPanel && (
+            <div 
+                className="fixed inset-0 z-[100] flex items-center justify-center"
+                style={{ 
+                    backgroundColor: 'rgba(15, 23, 42, 0.6)', 
+                    backdropFilter: 'blur(5px)',
+                    WebkitBackdropFilter: 'blur(5px)'
+                }}
+            >
+                <div className="bg-white rounded-2xl p-8 shadow-2xl text-center border-4 border-slate-200 animate-in zoom-in duration-200">
+                    <h2 className="text-3xl font-black text-slate-800 mb-2">PAUSED</h2>
+                    <p className="text-slate-500 font-bold mb-6">Take a breather!</p>
+                    <button 
+                        onClick={togglePause}
+                        className="bg-slate-900 text-white font-bold text-xl px-8 py-3 rounded-xl hover:bg-slate-800 btn-press flex items-center gap-2 mx-auto transition-colors"
+                    >
+                        <Play size={20} fill="currentColor" />
+                        Resume
+                    </button>
+                </div>
+            </div>
+        )}
+
         {activeAttack && (
             <BaseDefense 
                 expiresAt={activeAttack.expiresAt}
                 onDefend={handleDefendBase}
                 difficulty={Math.max(2000, gameState.money)} // Scale difficulty
+                isPaused={isGamePaused || showAdminPanel}
             />
         )}
         
         {attackNotification && (
-             <div className="absolute top-20 left-1/2 transform -translate-x-1/2 z-150 animate-bounce-short">
+             <div className="absolute top-20 left-1/2 transform -translate-x-1/2 z-150 animate-bounce-short pointer-events-none">
                 <div className={`px-6 py-4 rounded-xl shadow-xl border-4 font-black text-xl uppercase flex items-center gap-3 ${attackNotification.success ? 'bg-green-500 border-green-700 text-white' : 'bg-red-600 border-red-800 text-white'}`}>
                     {attackNotification.success ? <ShieldAlert size={24} /> : <ShieldAlert size={24} />}
                     {attackNotification.message}
@@ -728,50 +856,55 @@ export default function App() {
                 difficulty={activeSteal.difficulty}
                 initialTime={activeSteal.timeLimit}
                 onComplete={finishSteal}
+                isPaused={isGamePaused || showAdminPanel}
             />
         )}
         
-        <StatusHeader gameState={gameState} />
-        
-        <div className="flex flex-1 flex-col md:flex-row overflow-hidden relative">
-            <aside className="w-full md:w-shop h-30pct md:h-full order-3 md:order-1 z-20 shadow-xl bg-white border-r border-slate-200">
-                <Shop 
-                    gameState={gameState} 
-                    shopRotation={shopRotation}
-                    shopTimer={shopTimer}
-                    onBuyItem={handleBuyItem} 
-                    onSellItem={handleSellItem}
-                    onRebirth={handleRebirth}
-                />
-            </aside>
+        {/* Main Game Content - Blurred when paused */}
+        <div className={`flex flex-col w-full h-full transition-all duration-300 ${isGamePaused ? 'filter blur-[15px] opacity-25 pointer-events-none select-none' : ''}`}>
+            <StatusHeader 
+                gameState={gameState} 
+                isPaused={isGamePaused}
+                onTogglePause={togglePause}
+            />
+            
+            <div className="flex flex-1 flex-col md:flex-row overflow-hidden relative">
+                <aside className="w-full md:w-shop h-30pct md:h-full order-3 md:order-1 z-20 shadow-xl bg-white border-r border-slate-200">
+                    <Shop 
+                        gameState={gameState} 
+                        shopRotation={shopRotation}
+                        shopTimer={shopTimer}
+                        onBuyItem={handleBuyItem} 
+                        onSellItem={handleSellItem}
+                        onRebirth={handleRebirth}
+                    />
+                </aside>
 
-            <main className="flex-1 relative order-1 md:order-2 h-40pct md:h-full overflow-hidden bg-gradient-to-br from-violet-600 to-indigo-600 shadow-[inset_0_0_20px_rgba(0,0,0,0.3)]">
-                
-                {/* Floating Money HUD removed from here */}
+                <main className="flex-1 relative order-1 md:order-2 h-40pct md:h-full overflow-hidden bg-gradient-to-br from-violet-600 to-indigo-600 shadow-[inset_0_0_20px_rgba(0,0,0,0.3)]">
+                    <MathGame 
+                        gameState={gameState} 
+                        isPaused={showHelp || !!activeSteal || !!activeAttack || isGamePaused || showAdminPanel}
+                        onCorrectAnswer={handleCorrectAnswer}
+                        onWrongAnswer={handleWrongAnswer}
+                        onTimeUp={handleTimeOut}
+                    />
 
-                <MathGame 
-                    gameState={gameState} 
-                    isPaused={showHelp || !!activeSteal || !!activeAttack}
-                    onCorrectAnswer={handleCorrectAnswer}
-                    onWrongAnswer={handleWrongAnswer}
-                    onTimeUp={handleTimeOut}
-                />
-
-                {earnedAnimation && (
-                    <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-full pointer-events-none z-50">
-                        <div className="animate-bounce text-4xl font-black text-green-500 stroke-black drop-shadow-lg">
-                            +${earnedAnimation.value}
+                    {earnedAnimation && (
+                        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-full pointer-events-none z-50">
+                            <div className="animate-bounce text-4xl font-black text-green-500 stroke-black drop-shadow-lg">
+                                +${earnedAnimation.value}
+                            </div>
                         </div>
-                    </div>
-                )}
-            </main>
+                    )}
+                </main>
 
-            <aside className="w-full md:w-sidebar h-30pct md:h-full order-2 md:order-3 z-20 shadow-xl bg-white border-l border-slate-200">
-                <RivalsList 
-                    gameState={gameState}
-                    onStealAttempt={startSteal}
-                />
-            </aside>
+                <aside className="w-full md:w-sidebar h-30pct md:h-full order-2 md:order-3 z-20 shadow-xl bg-white border-l border-slate-200">
+                    <RivalsList 
+                        gameState={gameState}
+                        onStealAttempt={startSteal}
+                    />
+                </aside>
+            </div>
         </div>
     </div>
   );

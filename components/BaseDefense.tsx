@@ -8,27 +8,32 @@ interface BaseDefenseProps {
   expiresAt: number;
   onDefend: () => void;
   difficulty: number;
+  isPaused: boolean;
 }
 
-export const BaseDefense: React.FC<BaseDefenseProps> = ({ expiresAt, onDefend, difficulty }) => {
+export const BaseDefense: React.FC<BaseDefenseProps> = ({ expiresAt, onDefend, difficulty, isPaused }) => {
   const [timeLeft, setTimeLeft] = useState(0);
   const [problem] = useState<MathProblem>(generateProblem(difficulty));
   const [isWrong, setIsWrong] = useState(false);
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
 
   useEffect(() => {
+    if (isPaused) return;
+
     const timer = setInterval(() => {
       const remaining = Math.max(0, expiresAt - Date.now());
       setTimeLeft(remaining);
     }, 50);
     return () => clearInterval(timer);
-  }, [expiresAt]);
+  }, [expiresAt, isPaused]);
 
   const secondsDisplay = (timeLeft / 1000).toFixed(1);
   const isUrgent = timeLeft < 3000;
   const initialDuration = useRef(Math.max(0, expiresAt - Date.now()));
 
   const handleOptionClick = (option: string) => {
+    if (isPaused) return;
+
     setSelectedOption(option);
     
     const normalizedUser = option.replace(/\s/g, '').toLowerCase();

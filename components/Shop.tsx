@@ -39,9 +39,20 @@ export const Shop: React.FC<ShopProps> = ({ gameState, shopRotation, shopTimer, 
     }
   };
 
+  const getRarityBorder = (rarity: string) => {
+    switch (rarity) {
+        case 'common': return 'border-green-200 hover:border-green-400';
+        case 'rare': return 'border-blue-200 hover:border-blue-400';
+        case 'epic': return 'border-purple-200 hover:border-purple-400';
+        case 'legendary': return 'border-yellow-200 hover:border-yellow-400';
+        case 'mythic': return 'border-red-200 hover:border-red-400';
+        default: return 'border-slate-200 hover:border-slate-400';
+    }
+  };
+
   const renderInventoryGrid = (items: string[], isOwner: boolean) => {
     return (
-        <div className="grid grid-cols-2 gap-4 pb-20">
+        <div className="grid grid-cols-2 gap-3 pb-20">
             {Array.from({ length: maxInventorySize }).map((_, index) => {
                 const itemId = items[index];
                 const item = itemId ? SHOP_ITEMS.find(i => i.id === itemId) : null;
@@ -59,9 +70,10 @@ export const Shop: React.FC<ShopProps> = ({ gameState, shopRotation, shopTimer, 
 
                 const passiveIncome = getPassiveIncome(item.price);
                 const rarityStyle = getRarityColor(item.rarity);
+                const rarityBorder = getRarityBorder(item.rarity);
                 
                 return (
-                    <div key={`${item.id}-${index}`} className="aspect-[3/4] rounded-xl border border-slate-200 bg-white shadow-sm flex flex-col relative overflow-hidden group hover:border-blue-300 transition-colors">
+                    <div key={`${item.id}-${index}`} className={`aspect-[3/4] rounded-xl border-2 bg-white shadow-sm flex flex-col relative overflow-hidden group transition-all ${rarityBorder}`}>
                          <div className="flex-1 flex flex-col items-center justify-center p-3 text-center min-h-0">
                               <div className="text-2xl mb-3 drop-shadow-sm transform group-hover:scale-110 transition-transform">{item.emoji}</div>
                               
@@ -83,7 +95,7 @@ export const Shop: React.FC<ShopProps> = ({ gameState, shopRotation, shopTimer, 
                              {isOwner && (
                                  <button 
                                     onClick={() => onSellItem(item)}
-                                    className="w-full bg-red-50 hover:bg-red-100 text-red-600 text-[10px] font-bold py-1.5 rounded-lg flex items-center justify-center gap-1 transition-colors uppercase"
+                                    className="w-full bg-red-50 hover:bg-red-100 text-red-600 text-[10px] font-bold py-1.5 rounded-lg flex items-center justify-center gap-1 transition-colors uppercase border border-red-100"
                                  >
                                     <Trash2 size={12} />
                                     Sell
@@ -178,12 +190,27 @@ export const Shop: React.FC<ShopProps> = ({ gameState, shopRotation, shopTimer, 
 
       <div className="flex-1 overflow-y-auto p-4 custom-scrollbar">
         {viewMode === 'shop' && (
-            <div className="grid grid-cols-1 gap-4 pb-20">
+            <div className="grid grid-cols-2 gap-3 pb-20">
                 {shopRotation.map((item) => {
                     const isOwned = gameState.inventory.includes(item.id);
                     const canAfford = gameState.money >= item.price;
                     const passiveIncome = getPassiveIncome(item.price);
                     const rarityStyle = getRarityColor(item.rarity);
+                    const rarityBorder = getRarityBorder(item.rarity);
+
+                    // Determine card state styles
+                    let cardBg = 'bg-white';
+                    let opacity = 'opacity-100';
+                    let cursor = 'cursor-pointer';
+
+                    if (isOwned) {
+                        cardBg = 'bg-green-50';
+                        opacity = 'opacity-90'; 
+                    } else if (!canAfford || isInventoryFull) {
+                         cardBg = 'bg-slate-50';
+                         opacity = 'opacity-80';
+                         cursor = 'cursor-not-allowed';
+                    }
 
                     return (
                         <div 
@@ -194,55 +221,62 @@ export const Shop: React.FC<ShopProps> = ({ gameState, shopRotation, shopTimer, 
                                 }
                             }}
                             className={`
-                                relative p-4 rounded-xl border transition-all duration-200
-                                ${isOwned 
-                                    ? 'bg-green-50 border-green-200' 
-                                    : (!canAfford || isInventoryFull)
-                                        ? 'bg-slate-50 border-slate-200 opacity-60 cursor-not-allowed'
-                                        : 'bg-white border-blue-100 cursor-pointer hover:shadow-md hover:border-purple-200 btn-press active:translate-y-0'
-                                }
+                                relative aspect-[3/4.5] rounded-xl border-2 flex flex-col overflow-hidden transition-all duration-200 group
+                                ${rarityBorder} ${cardBg} ${opacity} ${cursor}
+                                ${(!isOwned && canAfford && !isInventoryFull) ? 'hover:-translate-y-1 hover:shadow-lg' : ''}
                             `}
                         >
-                            <div className="flex items-start gap-4">
-                                <div className={`w-12 h-12 rounded-lg flex items-center justify-center text-2xl bg-slate-50 border border-slate-100`}>
+                            {/* Content */}
+                            <div className="flex-1 flex flex-col items-center p-2 text-center min-h-0">
+                                {/* Emoji */}
+                                <div className="text-3xl mb-2 mt-1 drop-shadow-sm transform group-hover:scale-110 transition-transform duration-300">
                                     {item.emoji}
                                 </div>
-                                <div className="flex-1 min-w-0">
-                                    <div className="flex justify-between items-start mb-1">
-                                        <h3 className="font-bold text-slate-800 text-sm truncate">{item.name}</h3>
-                                        <span className={`text-[9px] uppercase font-bold px-1.5 py-0.5 rounded ${rarityStyle}`}>
-                                            {item.rarity}
-                                        </span>
-                                    </div>
-                                    
-                                    <p className="text-xs text-slate-500 leading-snug mb-2">
-                                        {item.description}
-                                    </p>
+                                
+                                {/* Name */}
+                                <div className="font-bold text-slate-800 text-[11px] leading-tight line-clamp-2 w-full mb-1">
+                                    {item.name}
+                                </div>
+                                
+                                {/* Rarity Badge */}
+                                <div className={`text-[8px] uppercase font-black px-1.5 py-0.5 rounded mb-1 ${rarityStyle}`}>
+                                    {item.rarity}
+                                </div>
 
-                                    <div className="flex items-center justify-between">
-                                        <div className="flex items-center gap-1 text-[10px] font-bold text-slate-400">
-                                            <Zap size={10} className="text-yellow-500" fill="currentColor" />
-                                            +${passiveIncome}/s
-                                        </div>
+                                {/* Desc */}
+                                <div className="text-[9px] font-medium text-slate-500 leading-tight line-clamp-2 mb-2 px-1">
+                                    {item.description}
+                                </div>
 
-                                        {isOwned ? (
-                                            <span className="text-green-600 text-xs font-bold flex items-center gap-1">
-                                                <Check size={12} /> Owned
-                                            </span>
-                                        ) : (
-                                            <span className={`text-xs font-bold px-2 py-1 rounded-md ${canAfford && !isInventoryFull ? 'bg-slate-900 text-white' : 'bg-slate-200 text-slate-400'}`}>
-                                                ${item.price.toLocaleString()}
-                                            </span>
-                                        )}
-                                    </div>
+                                {/* Passive Income */}
+                                <div className="mt-auto bg-white/60 border border-slate-100 px-1.5 py-0.5 rounded text-[9px] font-bold flex items-center gap-1 text-slate-600">
+                                    <Zap size={10} fill="currentColor" className="text-yellow-500" />
+                                    <span>+${passiveIncome}/s</span>
                                 </div>
                             </div>
 
-                            {!canAfford && !isOwned && (
-                                <div className="absolute top-3 right-3 text-slate-300">
-                                    <Lock size={14} />
-                                </div>
-                            )}
+                            {/* Footer / Action */}
+                            <div className="p-2 pt-0 bg-transparent mt-1">
+                                {isOwned ? (
+                                    <div className="w-full bg-green-100 text-green-700 text-[10px] font-bold py-2 rounded-lg flex items-center justify-center gap-1 border border-green-200">
+                                        <Check size={12} strokeWidth={3} />
+                                        Owned
+                                    </div>
+                                ) : (
+                                    <button 
+                                        disabled={!canAfford || isInventoryFull}
+                                        className={`w-full text-[10px] font-black py-2 rounded-lg flex items-center justify-center gap-1 transition-all border
+                                            ${(canAfford && !isInventoryFull) 
+                                                ? 'bg-slate-900 text-white border-slate-800 hover:bg-slate-800' 
+                                                : 'bg-slate-200 text-slate-400 border-slate-300'
+                                            }
+                                        `}
+                                    >
+                                        {!canAfford && !isOwned ? <Lock size={10} /> : null}
+                                        ${item.price.toLocaleString()}
+                                    </button>
+                                )}
+                            </div>
                         </div>
                     );
                 })}

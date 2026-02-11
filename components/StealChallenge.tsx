@@ -10,9 +10,10 @@ interface StealChallengeProps {
   difficulty: number;
   initialTime: number;
   onComplete: (success: boolean) => void;
+  isPaused: boolean;
 }
 
-export const StealChallenge: React.FC<StealChallengeProps> = ({ targetItem, difficulty, initialTime, onComplete }) => {
+export const StealChallenge: React.FC<StealChallengeProps> = ({ targetItem, difficulty, initialTime, onComplete, isPaused }) => {
   const [problem] = useState<MathProblem>(generateProblem(difficulty)); 
   const [timeLeft, setTimeLeft] = useState(initialTime); 
   const [feedback, setFeedback] = useState<'none' | 'correct' | 'wrong'>('none');
@@ -21,6 +22,8 @@ export const StealChallenge: React.FC<StealChallengeProps> = ({ targetItem, diff
   const item = SHOP_ITEMS.find(i => i.id === targetItem.itemId);
 
   useEffect(() => {
+    if (isPaused) return;
+
     const timer = setInterval(() => {
       setTimeLeft(prev => {
         if (prev <= 0) {
@@ -33,7 +36,7 @@ export const StealChallenge: React.FC<StealChallengeProps> = ({ targetItem, diff
     }, 1000);
 
     return () => clearInterval(timer);
-  }, []);
+  }, [isPaused]);
 
   const handleFail = () => {
     setFeedback('wrong');
@@ -46,7 +49,7 @@ export const StealChallenge: React.FC<StealChallengeProps> = ({ targetItem, diff
   };
 
   const handleOptionClick = (option: string) => {
-    if (feedback !== 'none') return;
+    if (feedback !== 'none' || isPaused) return;
     
     setSelectedOption(option);
     const normalizedUser = option.replace(/\s/g, '').toLowerCase();
@@ -123,7 +126,7 @@ export const StealChallenge: React.FC<StealChallengeProps> = ({ targetItem, diff
                     return (
                         <button
                             key={index}
-                            disabled={feedback !== 'none'}
+                            disabled={feedback !== 'none' || isPaused}
                             onClick={() => handleOptionClick(option)}
                             className={`
                                 h-16 rounded-xl text-xl font-bold font-mono transition-all btn-press shadow-md

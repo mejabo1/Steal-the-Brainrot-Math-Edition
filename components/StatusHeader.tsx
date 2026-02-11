@@ -2,20 +2,22 @@
 import React from 'react';
 import { GameState } from '../types';
 import { SHOP_ITEMS, getPassiveIncome } from '../constants';
-import { Flame, Shield, TrendingUp, Clock, Zap, Coins, Crown } from 'lucide-react';
+import { Flame, Shield, TrendingUp, Clock, Zap, Coins, Crown, Pause, Play } from 'lucide-react';
 
 interface StatusHeaderProps {
   gameState: GameState;
+  isPaused: boolean;
+  onTogglePause: () => void;
 }
 
-export const StatusHeader: React.FC<StatusHeaderProps> = ({ gameState }) => {
+export const StatusHeader: React.FC<StatusHeaderProps> = ({ gameState, isPaused, onTogglePause }) => {
   const totalPassiveIncome = gameState.inventory.reduce((sum, id) => {
     const item = SHOP_ITEMS.find(i => i.id === id);
     return sum + (item ? getPassiveIncome(item.price) : 0);
   }, 0);
 
   return (
-    <div className="w-full bg-slate-900 text-white px-4 py-3 shadow-md z-50 flex items-center justify-between gap-4 overflow-x-auto whitespace-nowrap">
+    <div className="w-full bg-slate-900 text-white px-4 py-3 shadow-md z-50 flex items-center justify-between gap-4 overflow-x-auto whitespace-nowrap custom-scrollbar">
         
         {/* Left Side: Money & Passive Income */}
         <div className="flex items-center gap-4">
@@ -71,6 +73,22 @@ export const StatusHeader: React.FC<StatusHeaderProps> = ({ gameState }) => {
                     <span>+{gameState.timerBonus}s</span>
                 </div>
             )}
+
+            {/* Pause Button - UPDATED to be larger and distinct */}
+            <button 
+                onClick={onTogglePause}
+                className={`
+                    flex items-center gap-1.5 font-black uppercase tracking-wider text-xs px-4 py-2 rounded-xl border-2 transition-all btn-press ml-2 shrink-0
+                    ${isPaused 
+                        ? 'bg-yellow-400 border-yellow-600 text-yellow-900 shadow-lg animate-pulse' 
+                        : 'bg-red-600 border-red-800 text-white hover:bg-red-500 shadow-md'
+                    }
+                `}
+                title={isPaused ? "Resume Game" : "Pause Game"}
+            >
+                {isPaused ? <Play size={16} fill="currentColor" /> : <Pause size={16} fill="currentColor" />}
+                <span>{isPaused ? "Resume" : "Pause"}</span>
+            </button>
         </div>
     </div>
   );

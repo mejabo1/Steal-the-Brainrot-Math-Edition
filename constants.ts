@@ -10,14 +10,17 @@ export const MAX_BOT_INVENTORY_SIZE = 4;
 export const BASE_REBIRTH_COST = 1000000;
 export const REBIRTH_MULTIPLIER_BONUS = 0.5; // +50% multiplier per rebirth
 
-// Specific costs for Rebirth levels 1-6
+// Specific costs for Rebirth levels 1-8
+// Rebirth 8 is the Admin Panel unlock at 80M
 const REBIRTH_COST_TIERS = [
     1000000,   // Level 1
     5000000,   // Level 2
     10000000,  // Level 3
-    30000000,  // Level 4
-    60000000,  // Level 5
-    80000000   // Level 6
+    25000000,  // Level 4
+    40000000,  // Level 5
+    60000000,  // Level 6
+    70000000,  // Level 7
+    80000000   // Level 8 (Admin Panel)
 ];
 
 export const getRebirthCost = (targetLevel: number): number => {
@@ -28,7 +31,7 @@ export const getRebirthCost = (targetLevel: number): number => {
         return REBIRTH_COST_TIERS[targetLevel - 1];
     }
     
-    // Fallback scaling for levels > 6 (Add 50M per level)
+    // Fallback scaling for levels > 8 (Add 50M per level)
     const lastDefinedCost = REBIRTH_COST_TIERS[REBIRTH_COST_TIERS.length - 1];
     const extraLevels = targetLevel - REBIRTH_COST_TIERS.length;
     return lastDefinedCost + (extraLevels * 50000000);
