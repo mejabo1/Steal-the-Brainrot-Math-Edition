@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Terminal, Shield, DollarSign, RefreshCw, Skull, X, Zap } from 'lucide-react';
+import { Terminal, Shield, DollarSign, RefreshCw, Skull, X, Zap, Trash2 } from 'lucide-react';
 
 interface AdminPanelProps {
   onClose: () => void;
@@ -70,6 +70,15 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onClose, onAction }) => 
             >
                 <RefreshCw size={16} />
                 RESET BOTS
+            </button>
+            
+            {/* Full Reset Button - Spans full width */}
+            <button 
+                onClick={() => onAction('hard_reset')}
+                className="col-span-2 bg-red-950/40 hover:bg-red-900/60 border border-red-800 text-red-500 p-3 rounded text-xs font-bold flex items-center justify-center gap-2 transition-all active:scale-95 mt-2"
+            >
+                <Trash2 size={16} />
+                FULL RESET SAVE (DANGER)
             </button>
         </div>
 

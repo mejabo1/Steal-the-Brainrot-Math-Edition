@@ -41,6 +41,7 @@ export interface GameState {
   baseMoney: number;
   timerBonus: number;
   shieldActive: boolean;
+  godMode: boolean; // New God Mode flag
   streakBonusMult: number;
   bots: Bot[];
   nextAttackTime: number; // Timestamp for when the base needs shielding

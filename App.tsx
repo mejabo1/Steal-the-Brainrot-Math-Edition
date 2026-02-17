@@ -9,6 +9,7 @@ import { HelpModal } from './components/HelpModal';
 import { StealChallenge } from './components/StealChallenge';
 import { BaseDefense } from './components/BaseDefense';
 import { AdminPanel } from './components/AdminPanel';
+import { ResetConfirmModal } from './components/ResetConfirmModal';
 import { SHOP_ITEMS, getPassiveIncome, BASE_INVENTORY_SIZE, MAX_BOT_INVENTORY_SIZE, BOT_PROFILES, getRebirthCost, REBIRTH_MULTIPLIER_BONUS } from './constants';
 import { ShieldAlert, Play, Terminal } from 'lucide-react';
 
@@ -21,6 +22,7 @@ const INITIAL_STATE: GameState = {
   baseMoney: 0,
   timerBonus: 0,
   shieldActive: false,
+  godMode: false,
   streakBonusMult: 1,
   bots: [],
   nextAttackTime: Date.now() + 60000, // Start with 60s grace period
@@ -104,11 +106,17 @@ export default function App() {
     if (state.rebirths === undefined) {
         state.rebirths = 0;
     }
+    
+    // Migration for godMode
+    if (state.godMode === undefined) {
+        state.godMode = false;
+    }
 
     return state;
   });
 
   const [showHelp, setShowHelp] = useState(true);
+  const [showResetConfirm, setShowResetConfirm] = useState(false); // New State for Confirmation
   const [earnedAnimation, setEarnedAnimation] = useState<{value: number, id: number} | null>(null);
   const [attackNotification, setAttackNotification] = useState<{message: string, success: boolean} | null>(null);
   const [isGamePaused, setIsGamePaused] = useState(false);
@@ -166,6 +174,19 @@ export default function App() {
     }
   };
 
+  // Full Reset Logic Steps
+  // 1. Trigger Modal
+  const requestFullReset = () => {
+      setShowResetConfirm(true);
+      setShowAdminPanel(false); // Close admin panel if open
+  };
+
+  // 2. Perform Reset
+  const executeFullReset = () => {
+      localStorage.removeItem('brainrot-math-save');
+      window.location.reload();
+  };
+
   // Admin Actions
   const handleAdminAction = (action: string) => {
       if (gameState.rebirths < 8) return;
@@ -180,8 +201,8 @@ export default function App() {
               setAttackNotification({ message: "ADMIN: +100M CASH", success: true });
               break;
           case 'infinite_shield':
-              setGameState(prev => ({ ...prev, shieldActive: !prev.shieldActive }));
-              setAttackNotification({ message: "ADMIN: GOD MODE TOGGLED", success: true });
+              setGameState(prev => ({ ...prev, godMode: !prev.godMode }));
+              setAttackNotification({ message: `ADMIN: GOD MODE ${!gameState.godMode ? 'ENABLED' : 'DISABLED'}`, success: true });
               break;
           case 'trigger_attack':
               setActiveAttack({ expiresAt: Date.now() + 14000 });
@@ -199,6 +220,9 @@ export default function App() {
               const randomMythic = mythics[Math.floor(Math.random() * mythics.length)];
               handleBuyItem({...randomMythic, price: 0}); // Free buy
               setAttackNotification({ message: `ADMIN: GAVE ${randomMythic.name}`, success: true });
+              break;
+          case 'hard_reset':
+              requestFullReset();
               break;
       }
       setTimeout(() => setAttackNotification(null), 2000);
@@ -252,7 +276,7 @@ export default function App() {
   // Shop Timer Logic
   useEffect(() => {
     const timer = setInterval(() => {
-        if (showHelp || activeSteal || activeAttack || isGamePaused || showAdminPanel) return;
+        if (showHelp || activeSteal || activeAttack || isGamePaused || showAdminPanel || showResetConfirm) return;
 
         setShopTimer((prev) => {
             if (prev <= 1) {
@@ -264,12 +288,12 @@ export default function App() {
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [showHelp, activeSteal, activeAttack, isGamePaused, showAdminPanel]);
+  }, [showHelp, activeSteal, activeAttack, isGamePaused, showAdminPanel, showResetConfirm]);
 
   // Passive Income Logic & Bot AI & Vulnerability Loop & Attack Loop
   useEffect(() => {
     const loop = setInterval(() => {
-        if (showHelp || activeSteal || isGamePaused || showAdminPanel) return; // Don't process if busy stealing or paused
+        if (showHelp || activeSteal || isGamePaused || showAdminPanel || showResetConfirm) return; // Don't process if busy stealing or paused
         
         const now = Date.now();
 
@@ -350,7 +374,7 @@ export default function App() {
     }, 1000);
 
     return () => clearInterval(loop);
-  }, [gameState.inventory, showHelp, activeSteal, gameState.bots, activeAttack, gameState.nextAttackTime, isGamePaused, showAdminPanel]);
+  }, [gameState.inventory, showHelp, activeSteal, gameState.bots, activeAttack, gameState.nextAttackTime, isGamePaused, showAdminPanel, showResetConfirm]);
 
   // Calculate stats including Rebirth Bonus
   const calculateStats = (inventoryIds: string[], currentRebirths: number) => {
@@ -399,6 +423,18 @@ export default function App() {
   };
 
   const handleAttackFail = () => {
+      // If God Mode is on, don't lose items!
+      if (gameState.godMode) {
+          setActiveAttack(null);
+          setGameState(prev => ({
+               ...prev,
+               nextAttackTime: Date.now() + 60000 + Math.random() * 30000
+          }));
+          setAttackNotification({ message: "BASE SHIELDED BY GOD MODE!", success: true });
+          setTimeout(() => setAttackNotification(null), 3000);
+          return;
+      }
+
       setActiveAttack(null);
       setGameState(prev => {
           // Logic: Steal one random item from player and give to a random bot
@@ -483,6 +519,8 @@ export default function App() {
 
   const handleWrongAnswer = () => {
     setGameState(prev => {
+        if (prev.godMode) return prev; // GOD MODE PROTECTION
+
         if (prev.shieldActive) {
             return { ...prev, shieldActive: false };
         } else {
@@ -493,6 +531,8 @@ export default function App() {
 
   const handleTimeOut = () => {
     setGameState(prev => {
+        if (prev.godMode) return prev; // GOD MODE PROTECTION
+
         // Break Streak
         let nextState = { ...prev };
         if (prev.shieldActive) {
@@ -646,6 +686,7 @@ export default function App() {
               timerBonus: newStats.timerBonus,
               streakBonusMult: newStats.streakBonusMult,
               shieldActive: false,
+              godMode: prev.godMode, // Preserve God Mode status
               consecutiveTimeouts: 0,
               bots: resetBots,
               rebirths: newRebirthCount,
@@ -749,7 +790,9 @@ export default function App() {
                   };
               }
 
-              if (prev.inventory.length > 0) {
+              // God Mode Protection for fails? Maybe, but let's keep risk for stealing active. 
+              // Actually, god mode usually prevents ALL negative effects.
+              if (!prev.godMode && prev.inventory.length > 0) {
                   const randomIdx = Math.floor(Math.random() * prev.inventory.length);
                   const lostItemId = prev.inventory[randomIdx];
                   
@@ -791,6 +834,14 @@ export default function App() {
     <div className="flex flex-col h-screen w-screen overflow-hidden bg-slate-900 font-sans relative">
         {showHelp && <HelpModal onStart={handleStartGame} />}
         
+        {/* New Reset Confirmation Modal */}
+        {showResetConfirm && (
+            <ResetConfirmModal 
+                onConfirm={executeFullReset} 
+                onCancel={() => setShowResetConfirm(false)} 
+            />
+        )}
+        
         {/* Admin Button (Visible only at Rebirth 8+) */}
         {gameState.rebirths >= 8 && !showHelp && (
             <button 
@@ -809,7 +860,7 @@ export default function App() {
             />
         )}
         
-        {isGamePaused && !showHelp && !showAdminPanel && (
+        {isGamePaused && !showHelp && !showAdminPanel && !showResetConfirm && (
             <div 
                 className="fixed inset-0 z-[100] flex items-center justify-center"
                 style={{ 
@@ -837,7 +888,7 @@ export default function App() {
                 expiresAt={activeAttack.expiresAt}
                 onDefend={handleDefendBase}
                 difficulty={Math.max(2000, gameState.money)} // Scale difficulty
-                isPaused={isGamePaused || showAdminPanel}
+                isPaused={isGamePaused || showAdminPanel || showResetConfirm}
             />
         )}
         
@@ -856,12 +907,12 @@ export default function App() {
                 difficulty={activeSteal.difficulty}
                 initialTime={activeSteal.timeLimit}
                 onComplete={finishSteal}
-                isPaused={isGamePaused || showAdminPanel}
+                isPaused={isGamePaused || showAdminPanel || showResetConfirm}
             />
         )}
         
         {/* Main Game Content - Blurred when paused */}
-        <div className={`flex flex-col w-full h-full transition-all duration-300 ${isGamePaused ? 'filter blur-[15px] opacity-25 pointer-events-none select-none' : ''}`}>
+        <div className={`flex flex-col w-full h-full transition-all duration-300 ${isGamePaused || showResetConfirm ? 'filter blur-[15px] opacity-25 pointer-events-none select-none' : ''}`}>
             <StatusHeader 
                 gameState={gameState} 
                 isPaused={isGamePaused}
@@ -883,7 +934,7 @@ export default function App() {
                 <main className="flex-1 relative order-1 md:order-2 h-40pct md:h-full overflow-hidden bg-gradient-to-br from-violet-600 to-indigo-600 shadow-[inset_0_0_20px_rgba(0,0,0,0.3)]">
                     <MathGame 
                         gameState={gameState} 
-                        isPaused={showHelp || !!activeSteal || !!activeAttack || isGamePaused || showAdminPanel}
+                        isPaused={showHelp || !!activeSteal || !!activeAttack || isGamePaused || showAdminPanel || showResetConfirm}
                         onCorrectAnswer={handleCorrectAnswer}
                         onWrongAnswer={handleWrongAnswer}
                         onTimeUp={handleTimeOut}

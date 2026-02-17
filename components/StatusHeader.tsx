@@ -78,10 +78,10 @@ export const StatusHeader: React.FC<StatusHeaderProps> = ({ gameState, isPaused,
             <button 
                 onClick={onTogglePause}
                 className={`
-                    flex items-center gap-1.5 font-black uppercase tracking-wider text-xs px-4 py-2 rounded-xl border-2 transition-all btn-press ml-2 shrink-0
+                    flex items-center gap-1.5 font-black uppercase tracking-wider text-xs px-4 py-2 rounded-xl border-2 transition-all btn-press shrink-0
                     ${isPaused 
                         ? 'bg-yellow-400 border-yellow-600 text-yellow-900 shadow-lg animate-pulse' 
-                        : 'bg-red-600 border-red-800 text-white hover:bg-red-500 shadow-md'
+                        : 'bg-red-600 border-red-800 text-white hover:bg-red-50 shadow-md'
                     }
                 `}
                 title={isPaused ? "Resume Game" : "Pause Game"}
